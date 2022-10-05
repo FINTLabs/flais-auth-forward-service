@@ -21,6 +21,7 @@ spring:
               - end-user-profile
             authorization-grant-type: authorization_code
             redirect-uri: http://localhost:8080/login/oauth2/code/fint
+
         provider:
           fint:
             issuer-uri: https://idp.felleskomponent.no/nidp/oauth/nam

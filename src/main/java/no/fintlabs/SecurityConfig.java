@@ -1,6 +1,7 @@
 package no.fintlabs;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
@@ -16,8 +17,8 @@ public class SecurityConfig {
 //          .pathMatchers("/about")
 //                .permitAll()
                 .anyExchange().authenticated()
-                .and().oauth2Login()
-                .and().build();
+                .and().oauth2Login(Customizer.withDefaults())
+                .build();
     }
 
     @Bean
