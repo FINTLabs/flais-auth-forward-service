@@ -10,17 +10,20 @@
 #            provider: fint-idp
 
 
+
+
 spring:
   security:
     oauth2:
       client:
+
         registration:
           fint:
             scope:
               - openid
               - end-user-profile
             authorization-grant-type: authorization_code
-            redirect-uri: http://localhost:8080/login/oauth2/code/fint
+            redirect-uri: http://whoami.example.com/login/oauth2/code/fint
 
         provider:
           fint:

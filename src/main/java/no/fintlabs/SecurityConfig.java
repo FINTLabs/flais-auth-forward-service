@@ -14,8 +14,8 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain configure(ServerHttpSecurity http) throws Exception {
         return http.authorizeExchange()
-//          .pathMatchers("/about")
-//                .permitAll()
+                .pathMatchers("/**")
+                .permitAll()
                 .anyExchange().authenticated()
                 .and().oauth2Login(Customizer.withDefaults())
                 .build();
