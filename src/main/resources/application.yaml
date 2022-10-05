@@ -23,7 +23,7 @@ spring:
               - openid
               - end-user-profile
             authorization-grant-type: authorization_code
-            redirect-uri: http://whoami.example.com/login/oauth2/code/fint
+            redirect-uri: http://localhost:8080/login/oauth2/code/fint
 
         provider:
           fint:
