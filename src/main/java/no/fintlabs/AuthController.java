@@ -22,7 +22,7 @@ public class AuthController {
         this.authorizedClientService = authorizedClientService;
     }
 
-    @GetMapping()
+    @GetMapping("auth")
     public Mono<ResponseEntity<Void>> auth(@RequestHeader Map<String, String> headers) {
         log.info("Request headers:");
         headers.forEach((s, s2) -> log.info("\t{}: {}", s, s2));
