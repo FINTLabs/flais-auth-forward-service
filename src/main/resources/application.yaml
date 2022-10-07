@@ -31,3 +31,8 @@ spring:
             token-uri: https://idp.felleskomponent.no/nidp/oauth/nam/token?resourceServer=fint-api
             user-info-uri: https://idp.felleskomponent.no/nidp/oauth/nam/userinfo
             #user-name-attribute: user_name
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG

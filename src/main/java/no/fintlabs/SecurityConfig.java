@@ -38,8 +38,8 @@ public class SecurityConfig {
         return resolver;
     }
 
-//    @Bean
-//    public ForwardedHeaderTransformer forwardedHeaderTransformer() {
-//        return new ForwardedHeaderTransformer();
-//    }
+    @Bean
+    public ForwardedHeaderTransformer forwardedHeaderTransformer() {
+        return new ForwardedHeaderTransformer();
+    }
 }
