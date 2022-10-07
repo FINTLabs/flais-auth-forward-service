@@ -54,11 +54,11 @@ spec:
   entryPoints:
     - web
   routes:
-  #- match: Host(`frode-test.fintlabs.no`) # && PathPrefix(`/`)
-  - match: Host(`whoami.example.com`) # && PathPrefix(`/`)
+  - match: Host(`frode-test.fintlabs.no`) && PathPrefix(`/`)
+  #- match: Host(`whoami.example.com`) # && PathPrefix(`/`)
     kind: Rule
     services:
       - name: whoami
         port: 8080
-#    middlewares:
-#      - name: traefik-forward-auth
+    middlewares:
+      - name: traefik-forward-auth

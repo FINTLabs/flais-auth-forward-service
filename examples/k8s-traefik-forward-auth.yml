@@ -65,7 +65,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 60
       containers:
-      - image: ghcr.io/fintlabs/flais-auth-forward-service:sha-3f61777
+      - image: ghcr.io/fintlabs/flais-auth-forward-service:sha-d9a8aad
         name: traefik-forward-auth
         ports:
         - containerPort: 8080
@@ -75,11 +75,11 @@ spec:
           value: 9a69bf9b-c8a7-4b31-be0d-d848e789edfe
         - name: spring.security.oauth2.client.registration.fint.client-secret
           value: Hz4CmAzQpLHySDfbvahvJtSHZpGINxmcijyITg-W0r4z6DVq88ZChtxn2ljZe6iJMQJmHmeenqF-NUMwRq3MhA
-        - name: spring.security.oauth2.client.registration.fint.redirect-uri
-          value: http://whoami.example.com/login/oauth2/code/fint
+        #- name: spring.security.oauth2.client.registration.fint.redirect-uri
+        #  value: http://whoami.example.com/login/oauth2/code/fint
         - name: server.forward-headers-strategy
-          value: NONE
-        - name: logging.level.org.springframework.security
+          value: NATIVE
+        - name: logging.level.org.springframework
           value: DEBUG
 ---
 #
@@ -132,7 +132,7 @@ spec:
     address: http://traefik-forward-auth:8080/auth
     authResponseHeaders:
       - Authorization
-    trustForwardHeader: true
+    #trustForwardHeader: true
 
 ---
 #
