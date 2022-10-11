@@ -8,7 +8,6 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
-import javax.servlet.http.Cookie;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -25,42 +24,27 @@ public class CookieService {
 
     public CookieService(OicdConfiguration oicdConfiguration) {
         this.oicdConfiguration = oicdConfiguration;
-        //cookieHashKey = RandomStringUtils.randomAscii(32).getBytes();
     }
 
-    public Optional<Cookie> verifyCookie(Cookie[] cookies) {
-        if (cookies != null) {
-            Optional<Cookie> sessionCookie = Arrays
-                    .stream(cookies)
-                    .filter(cookie -> cookie.getName().equals(COOKIE_NAME))
-                    .findAny();
+    public Optional<HttpCookie> verifyCookie(MultiValueMap<String, HttpCookie> cookies) {
 
-            if (sessionCookie.isPresent()) {
-                if (cookieValueIsValid(sessionCookie.get().getValue())) {
-                    return sessionCookie;
+
+        if (cookies.containsKey(COOKIE_NAME)) {
+            List<HttpCookie> user_session = cookies.get(COOKIE_NAME);
+            if (user_session.size() == 1) {
+                HttpCookie cookie = user_session.get(0);
+                if (cookieValueIsValid(cookie.getValue())) {
+                    return Optional.of(cookie);
                 }
             }
         }
         return Optional.empty();
-
-
-
-//        if (cookies.containsKey(COOKIE_NAME)) {
-//            List<HttpCookie> user_session = cookies.get(COOKIE_NAME);
-//            if (user_session.size() == 1) {
-//                HttpCookie cookie = user_session.get(0);
-//                if (cookieValueIsValid(cookie.getValue())) {
-//                    return Optional.of(cookie);
-//                }
-//            }
-//        }
-//        return Optional.empty();
     }
 
-    public ResponseCookie createCookie(Map<String, String> params, Map<String, String> headers){
+    public ResponseCookie createCookie(Map<String, String> params, Map<String, String> headers) {
 
         return ResponseCookie.from(COOKIE_NAME, createCookieValue(params.get("state")))
-                //.domain(headers.get("x-forwarded-host"))
+                .domain(headers.get("x-forwarded-host"))
                 .httpOnly(true)
                 .sameSite("Lax")
                 .maxAge(Duration.ofMinutes(oicdConfiguration.getSessionMaxAgeInMinutes()))
@@ -83,6 +67,7 @@ public class CookieService {
         String[] values = value.split("\\|");
         return createHash(values[1]).equals(values[0]);
     }
+
     public static String createHash(String value) {
         HmacUtils hm256 = new HmacUtils(HmacAlgorithms.HMAC_SHA_256, cookieHashKey);
 

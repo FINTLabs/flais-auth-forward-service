@@ -20,12 +20,4 @@ public class Token {
 
     @JsonProperty("scope")
     private String scope;
-
-    /*
-    {"access_token":
-"eyJhbGciOiJSU0ExXzU......",
-"token_type": "bearer","expires_in": 179,
-"refresh_token": "eyJhbGcidHlwIjoiSldUIiwiemlwjo..........",
-"scope": "email"}
-     */
 }
