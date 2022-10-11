@@ -55,7 +55,7 @@ public class AuthController {
             Session session = sessionRepository.getTokenByState(CookieService.getStateFromValue(cookie.getValue())).orElseThrow(MissingAuthentication::new);
             oidcService.verifyToken(session.getToken());
 
-            URI forwardTo = URI.create(Optional.ofNullable(headers.getFirst("X-Forwarded-Uri")).orElse("/_oauth/test"));
+            URI forwardTo = URI.create(Optional.ofNullable(headers.getFirst("X-Forwarded-Uri")).orElse("/"));
             log.debug("Authentication is ok!");
             log.debug("Redirecting to {}", forwardTo);
             response.setStatusCode(HttpStatus.FOUND);
