@@ -89,7 +89,8 @@ public class AuthController {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Void> onExceptionDeny() {
+    public ResponseEntity<Void> onExceptionDeny(Exception e) {
+        log.debug(e.toString());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 }
