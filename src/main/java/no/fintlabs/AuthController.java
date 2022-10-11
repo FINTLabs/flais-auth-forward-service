@@ -13,6 +13,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -93,6 +94,7 @@ public class AuthController {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Void> onExceptionDeny(Exception e) {
         log.debug(e.toString());
+        log.debug(Arrays.toString(e.getStackTrace()));
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 }
