@@ -18,8 +18,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 
-import static no.fintlabs.CookieService.COOKIE_NAME;
-
 @Slf4j
 @RestController
 public class AuthController {
@@ -94,7 +92,7 @@ public class AuthController {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Void> onExceptionDeny(Exception e) {
         log.debug(e.toString());
-        log.debug(Arrays.toString(e.getStackTrace()));
+         e.printStackTrace();
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 }
