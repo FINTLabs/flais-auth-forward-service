@@ -138,7 +138,7 @@ public class OicdService {
 
     public String createRedirectUri(HttpHeaders headers) {
         return UriComponentsBuilder.newInstance()
-                .scheme(oicdConfiguration.isEnforceHttps() ? "https" : headers.getFirst(X_FORWARDED_PROTO))
+                .scheme(getProtocol(headers))
                 .port(getPort(headers))
                 .host(headers.getFirst(X_FORWARDED_HOST))
                 .path("/callback")
@@ -146,7 +146,7 @@ public class OicdService {
                 .toUriString();
     }
 
-    private  String getPort(HttpHeaders headers) {
+    public String getPort(HttpHeaders headers) {
         if (oicdConfiguration.isEnforceHttps()) {
             return null;
         }
@@ -156,7 +156,10 @@ public class OicdService {
         }
 
         return null;
+    }
 
+    public String getProtocol(HttpHeaders headers) {
+        return oicdConfiguration.isEnforceHttps() ? "https" : headers.getFirst(X_FORWARDED_PROTO);
     }
 
 }

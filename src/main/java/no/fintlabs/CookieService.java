@@ -46,7 +46,7 @@ public class CookieService {
                 .httpOnly(true)
                 .sameSite("Lax")
                 .maxAge(Duration.ofMinutes(oicdConfiguration.getSessionMaxAgeInMinutes()))
-                .secure(Objects.requireNonNull(headers.getFirst("x-forwarded-proto")).equalsIgnoreCase("https"))
+                .secure(oicdConfiguration.isEnforceHttps()/*Objects.requireNonNull(headers.getFirst("x-forwarded-proto")).equalsIgnoreCase("https")*/)
                 .path("/")
                 .build();
     }

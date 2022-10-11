@@ -70,8 +70,8 @@ public class AuthController {
                     response.setStatusCode(HttpStatus.FOUND);
                     response.getHeaders().setLocation(
                             UriComponentsBuilder.newInstance()
-                                    .scheme(headers.getFirst("x-forwarded-proto"))
-                                    .port((Objects.requireNonNull(headers.getFirst("x-forwarded-port")).equalsIgnoreCase("80") || Objects.requireNonNull(headers.getFirst("x-forwarded-port")).equalsIgnoreCase("443")) ? "" : headers.getFirst("x-forwarded-port"))
+                                    .scheme(oicdService.getProtocol(headers))
+                                    .port(oicdService.getPort(headers))
                                     .host(headers.getFirst("x-forwarded-host"))
                                     .path("/auth")
                                     .build()
