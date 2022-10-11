@@ -21,8 +21,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 
 import static com.auth0.jwt.algorithms.Algorithm.RSA256;
 
@@ -64,7 +62,7 @@ public class OicdService {
                         .with("client_id", oicdConfiguration.getClientId())
                         .with("client_secret", oicdConfiguration.getClientSecret())
                         .with("code", params.get("code"))
-                        .with("redirect_uri", createRedirectUri(headers))
+                        .with("redirect_uri", createCallbackUri(headers))
                 )
                 .retrieve()
                 .bodyToMono(Token.class)
@@ -124,7 +122,7 @@ public class OicdService {
 
         return UriComponentsBuilder.fromUriString(wellKnownConfiguration.getAuthorizationEndpoint())
                 .queryParam("response_type", "code")
-                .queryParam("redirect_uri", createRedirectUri(headers))
+                .queryParam("redirect_uri", createCallbackUri(headers))
                 .queryParam("state", state)
                 .queryParam("nonce", RandomStringUtils.randomAlphanumeric(32))
                 //.queryParam("code_challenge", PkceUtil.generateCodeChallange(PkceUtil.generateCodeVerifier()))
@@ -136,12 +134,12 @@ public class OicdService {
 
     }
 
-    public String createRedirectUri(HttpHeaders headers) {
+    public String createCallbackUri(HttpHeaders headers) {
         return UriComponentsBuilder.newInstance()
                 .scheme(getProtocol(headers))
                 .port(getPort(headers))
                 .host(headers.getFirst(X_FORWARDED_HOST))
-                .path("/callback")
+                .path("/_oauth/callback")
                 .build()
                 .toUriString();
     }
