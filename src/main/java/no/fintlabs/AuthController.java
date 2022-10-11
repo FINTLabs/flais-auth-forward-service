@@ -87,7 +87,7 @@ public class AuthController {
                             .scheme(oicdService.getProtocol(headers))
                             .port(oicdService.getPort(headers))
                             .host(headers.getFirst("x-forwarded-host"))
-                            .path("/auth")
+                            .path("/_oauth")
                             .build()
                             .toUri();
 
