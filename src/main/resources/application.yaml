@@ -1,0 +1,4 @@
+logging:
+  level:
+    no:
+      fintlabs: debug

@@ -55,7 +55,7 @@ public class OicdService {
     }
 
     public Mono<Token> fetchToken(Map<String, String> params, HttpHeaders headers) {
-        log.debug("Fetching token on {}: ", getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api");
+        log.debug("Fetching token from {}", getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api");
         return webClient.post()
                 .uri(getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -69,8 +69,7 @@ public class OicdService {
                 .retrieve()
                 .bodyToMono(Token.class)
                 .map(token -> {
-                    log.debug("Got token:");
-                    log.debug(token.toString());
+                    log.debug("Got token: {}", token.toString());
                     sessionRepository.updateSession(params.get("state"), token);
                     return token;
                 });

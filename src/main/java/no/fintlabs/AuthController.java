@@ -39,6 +39,7 @@ public class AuthController {
     public Mono<Void> auth(@RequestHeader HttpHeaders headers,
                            ServerHttpResponse response,
                            ServerHttpRequest request) throws UnsupportedEncodingException {
+        log.debug("Hitting /auth");
         log.debug("Request headers:");
         headers.forEach((s, s2) -> log.debug("\t{}: {}", s, s2));
 
@@ -51,9 +52,11 @@ public class AuthController {
             response.getHeaders().add(HttpHeaders.AUTHORIZATION, String.format("%s %s", StringUtils.capitalize(session.getToken().getTokenType()), session.getToken().getAccessToken()));
             response.setStatusCode(HttpStatus.OK);
         } catch (MissingAuthentication e) {
+            URI authorizationUri = oicdService.createAuthorizationUriAndSession(headers);
             log.debug("Missing authentication!");
+            log.debug("Redirecting to {}", authorizationUri);
             response.setStatusCode(HttpStatus.FOUND);
-            response.getHeaders().setLocation(oicdService.createAuthorizationUriAndSession(headers));
+            response.getHeaders().setLocation(authorizationUri);
         }
 
         return response.setComplete();
@@ -65,6 +68,12 @@ public class AuthController {
     public Mono<Void> callback(@RequestParam Map<String, String> params,
                                @RequestHeader HttpHeaders headers,
                                ServerHttpResponse response) {
+
+        log.debug("Hitting /callback");
+        log.debug("Request headers:");
+        headers.forEach((s, s2) -> log.debug("\t{}: {}", s, s2));
+        log.debug("Request parameters:");
+        params.forEach((s, s2) -> log.debug("\t{}: {}", s, s2));
 
         return oicdService.fetchToken(params, headers)
                 .flatMap(token -> {
