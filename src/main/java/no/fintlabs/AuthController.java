@@ -21,6 +21,7 @@ import java.util.Objects;
 
 @Slf4j
 @RestController
+@RequestMapping("_oauth")
 public class AuthController {
 
     private final OicdService oicdService;
@@ -35,7 +36,7 @@ public class AuthController {
         this.cookieService = cookieService;
     }
 
-    @GetMapping("auth")
+    @GetMapping
     public Mono<Void> auth(@RequestHeader HttpHeaders headers,
                            ServerHttpResponse response,
                            ServerHttpRequest request) throws UnsupportedEncodingException {
@@ -49,8 +50,12 @@ public class AuthController {
             Session session = sessionRepository.getTokenByState(CookieService.getStateFromValue(cookie.getValue())).orElseThrow(MissingAuthentication::new);
             oicdService.verifyToken(session.getToken());
 
+            URI xForwardedUri = URI.create(Objects.requireNonNull(headers.getFirst("X-Forwarded-Uri")));
+            log.debug("Authentication is ok!");
+            log.debug("Redirecting to {}", xForwardedUri);
+            response.setStatusCode(HttpStatus.FOUND);
+            response.getHeaders().setLocation(URI.create(Objects.requireNonNull(headers.getFirst("X-Forwarded-Uri"))));
             response.getHeaders().add(HttpHeaders.AUTHORIZATION, String.format("%s %s", StringUtils.capitalize(session.getToken().getTokenType()), session.getToken().getAccessToken()));
-            response.setStatusCode(HttpStatus.OK);
         } catch (MissingAuthentication e) {
             URI authorizationUri = oicdService.createAuthorizationUriAndSession(headers);
             log.debug("Missing authentication!");
