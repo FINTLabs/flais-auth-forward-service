@@ -22,6 +22,7 @@ import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.auth0.jwt.algorithms.Algorithm.RSA256;
 
@@ -137,17 +138,25 @@ public class OicdService {
 
     public String createRedirectUri(HttpHeaders headers) {
         return UriComponentsBuilder.newInstance()
-                .scheme(headers.getFirst(X_FORWARDED_PROTO))
-                .port(
-                        (Objects.requireNonNull(headers.getFirst(X_FORWARDED_PORT)).equalsIgnoreCase("80")
-                                || Objects.requireNonNull(headers.getFirst(X_FORWARDED_PORT)).equalsIgnoreCase("443"))
-                                ? null
-                                : headers.getFirst(X_FORWARDED_PORT)
-                )
+                .scheme(oicdConfiguration.isEnforceHttps() ? "https" : headers.getFirst(X_FORWARDED_PROTO))
+                .port(getPort(headers))
                 .host(headers.getFirst(X_FORWARDED_HOST))
                 .path("/callback")
                 .build()
                 .toUriString();
+    }
+
+    private  String getPort(HttpHeaders headers) {
+        if (oicdConfiguration.isEnforceHttps()) {
+            return null;
+        }
+
+        if (headers.containsKey(X_FORWARDED_PORT)) {
+            return headers.getFirst(X_FORWARDED_PORT).equals("80") ? null : headers.getFirst(X_FORWARDED_PORT);
+        }
+
+        return null;
+
     }
 
 }
