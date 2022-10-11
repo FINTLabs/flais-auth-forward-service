@@ -21,6 +21,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.auth0.jwt.algorithms.Algorithm.RSA256;
 
@@ -52,7 +53,7 @@ public class OicdService {
         getWellKnowConfiguration();
     }
 
-    public Mono<Token> fetchToken(Map<String, String> params, Map<String, String> headers) {
+    public Mono<Token> fetchToken(Map<String, String> params, HttpHeaders headers) {
         return webClient.post()
                 .uri(getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -114,7 +115,7 @@ public class OicdService {
                 });
     }
 
-    public URI createAuthorizationUriAndSession(Map<String, String> headers) throws UnsupportedEncodingException {
+    public URI createAuthorizationUriAndSession(HttpHeaders headers) throws UnsupportedEncodingException {
         String state = RandomStringUtils.randomAlphanumeric(32);
         String codeVerifier = PkceUtil.generateCodeVerifier();
 
@@ -134,11 +135,11 @@ public class OicdService {
 
     }
 
-    public String createRedirectUri(Map<String, String> headers) {
+    public String createRedirectUri(HttpHeaders headers) {
         return UriComponentsBuilder.newInstance()
-                .scheme(headers.get(X_FORWARDED_PROTO))
-                .port((headers.get(X_FORWARDED_PORT).equalsIgnoreCase("80") || headers.get(X_FORWARDED_PORT).equalsIgnoreCase("443")) ? "" : headers.get(X_FORWARDED_PORT))
-                .host(headers.get(X_FORWARDED_HOST))
+                .scheme(headers.getFirst(X_FORWARDED_PROTO))
+                .port((Objects.requireNonNull(headers.getFirst(X_FORWARDED_PORT)).equalsIgnoreCase("80") || Objects.requireNonNull(headers.getFirst(X_FORWARDED_PORT)).equalsIgnoreCase("443")) ? "" : headers.getFirst(X_FORWARDED_PORT))
+                .host(headers.getFirst(X_FORWARDED_HOST))
                 .path("/callback")
                 .build()
                 .toUriString();

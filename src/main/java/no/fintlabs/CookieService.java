@@ -4,15 +4,13 @@ import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.http.HttpCookie;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class CookieService {
@@ -41,14 +39,14 @@ public class CookieService {
         return Optional.empty();
     }
 
-    public ResponseCookie createCookie(Map<String, String> params, Map<String, String> headers) {
+    public ResponseCookie createCookie(Map<String, String> params, HttpHeaders headers) {
 
         return ResponseCookie.from(COOKIE_NAME, createCookieValue(params.get("state")))
-                .domain(headers.get("x-forwarded-host"))
+                .domain(headers.getFirst("x-forwarded-host"))
                 .httpOnly(true)
                 .sameSite("Lax")
                 .maxAge(Duration.ofMinutes(oicdConfiguration.getSessionMaxAgeInMinutes()))
-                .secure(headers.get("x-forwarded-proto").equalsIgnoreCase("https"))
+                .secure(Objects.requireNonNull(headers.getFirst("x-forwarded-proto")).equalsIgnoreCase("https"))
                 .path("/")
                 .build();
     }

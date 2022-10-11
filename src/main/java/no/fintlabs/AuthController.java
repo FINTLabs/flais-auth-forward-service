@@ -15,6 +15,7 @@ import reactor.core.publisher.Mono;
 import java.io.UnsupportedEncodingException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 
 import static no.fintlabs.CookieService.COOKIE_NAME;
 
@@ -35,7 +36,8 @@ public class AuthController {
     }
 
     @GetMapping("auth")
-    public Mono<Void> auth(@RequestHeader Map<String, String> headers,
+    public Mono<Void> auth(@RequestHeader HttpHeaders headers,
+
                            ServerHttpResponse response,
                            ServerHttpRequest request) throws UnsupportedEncodingException {
         log.debug("Request headers:");
@@ -61,7 +63,7 @@ public class AuthController {
 
     @GetMapping("callback")
     public Mono<Void> callback(@RequestParam Map<String, String> params,
-                               @RequestHeader Map<String, String> headers,
+                               @RequestHeader HttpHeaders headers,
                                ServerHttpResponse response) {
 
         return oicdService.fetchToken(params, headers)
@@ -70,9 +72,9 @@ public class AuthController {
                     response.setStatusCode(HttpStatus.FOUND);
                     response.getHeaders().setLocation(
                             UriComponentsBuilder.newInstance()
-                                    .scheme(headers.get("x-forwarded-proto"))
-                                    .port((headers.get("x-forwarded-port").equalsIgnoreCase("80") || headers.get("x-forwarded-port").equalsIgnoreCase("443")) ? "" : headers.get("x-forwarded-port"))
-                                    .host(headers.get("x-forwarded-host"))
+                                    .scheme(headers.getFirst("x-forwarded-proto"))
+                                    .port((Objects.requireNonNull(headers.getFirst("x-forwarded-port")).equalsIgnoreCase("80") || Objects.requireNonNull(headers.getFirst("x-forwarded-port")).equalsIgnoreCase("443")) ? "" : headers.getFirst("x-forwarded-port"))
+                                    .host(headers.getFirst("x-forwarded-host"))
                                     .path("/auth")
                                     .build()
                                     .toUri()
