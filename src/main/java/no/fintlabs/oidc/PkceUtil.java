@@ -1,4 +1,4 @@
-package no.fintlabs;
+package no.fintlabs.oidc;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;

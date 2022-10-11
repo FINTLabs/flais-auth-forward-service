@@ -1,8 +1,9 @@
-package no.fintlabs;
+package no.fintlabs.session;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.oidc.Token;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;

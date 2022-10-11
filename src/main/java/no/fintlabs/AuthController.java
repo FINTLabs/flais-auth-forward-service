@@ -1,6 +1,10 @@
 package no.fintlabs;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.oidc.OidcService;
+import no.fintlabs.session.CookieService;
+import no.fintlabs.session.Session;
+import no.fintlabs.session.SessionRepository;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,23 +18,25 @@ import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.util.*;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
 
-import static no.fintlabs.CookieService.COOKIE_NAME;
+import static no.fintlabs.session.CookieService.COOKIE_NAME;
 
 @Slf4j
 @RestController
 @RequestMapping("_oauth")
 public class AuthController {
 
-    private final OicdService oicdService;
+    private final OidcService oidcService;
 
     private final SessionRepository sessionRepository;
 
     private final CookieService cookieService;
 
-    public AuthController(OicdService oicdService, SessionRepository sessionRepository, CookieService cookieService) {
-        this.oicdService = oicdService;
+    public AuthController(OidcService oidcService, SessionRepository sessionRepository, CookieService cookieService) {
+        this.oidcService = oidcService;
         this.sessionRepository = sessionRepository;
         this.cookieService = cookieService;
     }
@@ -47,7 +53,7 @@ public class AuthController {
 
             HttpCookie cookie = cookieService.verifyCookie(request.getCookies()).orElseThrow(MissingAuthentication::new);
             Session session = sessionRepository.getTokenByState(CookieService.getStateFromValue(cookie.getValue())).orElseThrow(MissingAuthentication::new);
-            oicdService.verifyToken(session.getToken());
+            oidcService.verifyToken(session.getToken());
 
             URI forwardTo = URI.create(Optional.ofNullable(headers.getFirst("X-Forwarded-Uri")).orElse("/_oauth/test"));
             log.debug("Authentication is ok!");
@@ -56,11 +62,12 @@ public class AuthController {
             response.getHeaders().setLocation(forwardTo);
             response.getHeaders().add(HttpHeaders.AUTHORIZATION, String.format("%s %s", StringUtils.capitalize(session.getToken().getTokenType()), session.getToken().getAccessToken()));
         } catch (MissingAuthentication e) {
-            URI authorizationUri = oicdService.createAuthorizationUriAndSession(headers);
+            URI authorizationUri = oidcService.createAuthorizationUriAndSession(headers);
             log.debug("Missing authentication!");
             log.debug("Redirecting to {}", authorizationUri);
             response.setStatusCode(HttpStatus.FOUND);
             response.getHeaders().setLocation(authorizationUri);
+            Optional.ofNullable(headers.getFirst("X-Forwarded-Uri")).ifPresent(s -> response.getHeaders().set("X-Forwarded-Uri", s));
         }
 
         return response.setComplete();
@@ -79,12 +86,12 @@ public class AuthController {
         log.debug("Request parameters:");
         params.forEach((s, s2) -> log.debug("\t{}: {}", s, s2));
 
-        return oicdService.fetchToken(params, headers)
+        return oidcService.fetchToken(params, headers)
                 .flatMap(token -> {
 
                     URI authUri = UriComponentsBuilder.newInstance()
-                            .scheme(oicdService.getProtocol(headers))
-                            .port(oicdService.getPort(headers))
+                            .scheme(oidcService.getProtocol(headers))
+                            .port(oidcService.getPort(headers))
                             .host(headers.getFirst("x-forwarded-host"))
                             .path("/_oauth")
                             .build()
@@ -101,7 +108,7 @@ public class AuthController {
 
     @GetMapping("logout")
     public Mono<Void> logout(@CookieValue(value = COOKIE_NAME, required = false) Optional<String> cookieValue, ServerHttpResponse response) {
-            return oicdService.logout(response, cookieValue);
+        return oidcService.logout(response, cookieValue);
     }
 
     @GetMapping("sessions")
@@ -117,7 +124,7 @@ public class AuthController {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Void> onExceptionDeny(Exception e) {
         log.debug(e.toString());
-         e.printStackTrace();
+        e.printStackTrace();
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 }

@@ -1,29 +1,32 @@
-package no.fintlabs;
+package no.fintlabs.session;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.oidc.OidcConfiguration;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.http.HttpCookie;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Service
 public class CookieService {
     public static final String COOKIE_NAME = "user_session";
 
-    private final OicdConfiguration oicdConfiguration;
+    private final OidcConfiguration oidcConfiguration;
 
     private static final byte[] cookieHashKey = RandomStringUtils.randomAscii(32).getBytes();
 
-    public CookieService(OicdConfiguration oicdConfiguration) {
-        this.oicdConfiguration = oicdConfiguration;
+    public CookieService(OidcConfiguration oidcConfiguration) {
+        this.oidcConfiguration = oidcConfiguration;
     }
 
     public Optional<HttpCookie> verifyCookie(MultiValueMap<String, HttpCookie> cookies) {
@@ -49,8 +52,8 @@ public class CookieService {
                 //.domain(headers.getFirst("x-forwarded-host"))
                 .httpOnly(true)
                 .sameSite("Lax")
-                .maxAge(Duration.ofMinutes(oicdConfiguration.getSessionMaxAgeInMinutes()))
-                .secure(oicdConfiguration.isEnforceHttps())
+                .maxAge(Duration.ofMinutes(oidcConfiguration.getSessionMaxAgeInMinutes()))
+                .secure(oidcConfiguration.isEnforceHttps())
                 .path("/")
                 .build();
     }
@@ -60,7 +63,7 @@ public class CookieService {
                 .httpOnly(true)
                 .sameSite("Lax")
                 .maxAge(0)
-                .secure(oicdConfiguration.isEnforceHttps())
+                .secure(oidcConfiguration.isEnforceHttps())
                 .path("/")
                 .build();
     }

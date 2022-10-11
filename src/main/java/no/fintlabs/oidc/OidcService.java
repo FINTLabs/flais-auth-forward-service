@@ -1,4 +1,4 @@
-package no.fintlabs;
+package no.fintlabs.oidc;
 
 import com.auth0.jwk.InvalidPublicKeyException;
 import com.auth0.jwt.JWT;
@@ -7,6 +7,9 @@ import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.MissingAuthentication;
+import no.fintlabs.session.CookieService;
+import no.fintlabs.session.SessionRepository;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -29,13 +32,13 @@ import static com.auth0.jwt.algorithms.Algorithm.RSA256;
 
 @Slf4j
 @Service
-public class OicdService {
+public class OidcService {
 
     public static final String WELL_KNOWN_OPENID_CONFIGURATION_PATH = ".well-known/openid-configuration";
     public static final String X_FORWARDED_PROTO = "x-forwarded-proto";
     public static final String X_FORWARDED_PORT = "x-forwarded-port";
     public static final String X_FORWARDED_HOST = "x-forwarded-host";
-    private final OicdConfiguration oicdConfiguration;
+    private final OidcConfiguration oidcConfiguration;
     private final WebClient webClient;
 
     private final SessionRepository sessionRepository;
@@ -46,8 +49,8 @@ public class OicdService {
 
     private Jwk jwk;
 
-    public OicdService(OicdConfiguration oicdConfiguration, WebClient webClient, SessionRepository sessionRepository, CookieService cookieService) {
-        this.oicdConfiguration = oicdConfiguration;
+    public OidcService(OidcConfiguration oidcConfiguration, WebClient webClient, SessionRepository sessionRepository, CookieService cookieService) {
+        this.oidcConfiguration = oidcConfiguration;
         this.webClient = webClient;
         this.sessionRepository = sessionRepository;
         this.cookieService = cookieService;
@@ -65,8 +68,8 @@ public class OicdService {
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .body(BodyInserters
                         .fromFormData("grant_type", "authorization_code")
-                        .with("client_id", oicdConfiguration.getClientId())
-                        .with("client_secret", oicdConfiguration.getClientSecret())
+                        .with("client_id", oidcConfiguration.getClientId())
+                        .with("client_secret", oidcConfiguration.getClientSecret())
                         .with("code", params.get("code"))
                         .with("redirect_uri", createCallbackUri(headers))
                 )
@@ -96,7 +99,7 @@ public class OicdService {
         log.info("Retrieving well know OpenId configuration...");
         webClient
                 .get()
-                .uri(oicdConfiguration.getIssuerUri().pathSegment(WELL_KNOWN_OPENID_CONFIGURATION_PATH).build().toUri())
+                .uri(oidcConfiguration.getIssuerUri().pathSegment(WELL_KNOWN_OPENID_CONFIGURATION_PATH).build().toUri())
                 .retrieve()
                 .bodyToMono(WellKnownConfiguration.class)
                 .subscribe(configuration -> {
@@ -149,8 +152,8 @@ public class OicdService {
                 .queryParam("nonce", RandomStringUtils.randomAlphanumeric(32))
                 //.queryParam("code_challenge", PkceUtil.generateCodeChallange(PkceUtil.generateCodeVerifier()))
                 //        .queryParam("code_challenge_method", "S256")
-                .queryParam("client_id", oicdConfiguration.getClientId())
-                .queryParam("scope", String.join("+", oicdConfiguration.getScopes()))
+                .queryParam("client_id", oidcConfiguration.getClientId())
+                .queryParam("scope", String.join("+", oidcConfiguration.getScopes()))
                 .build()
                 .toUri();
 
@@ -167,7 +170,7 @@ public class OicdService {
     }
 
     public String getPort(HttpHeaders headers) {
-        if (oicdConfiguration.isEnforceHttps()) {
+        if (oidcConfiguration.isEnforceHttps()) {
             return null;
         }
 
@@ -179,7 +182,7 @@ public class OicdService {
     }
 
     public String getProtocol(HttpHeaders headers) {
-        return oicdConfiguration.isEnforceHttps() ? "https" : headers.getFirst(X_FORWARDED_PROTO);
+        return oidcConfiguration.isEnforceHttps() ? "https" : headers.getFirst(X_FORWARDED_PROTO);
     }
 
 }

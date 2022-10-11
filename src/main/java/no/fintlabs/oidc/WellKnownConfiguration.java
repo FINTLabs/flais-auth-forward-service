@@ -1,4 +1,4 @@
-package no.fintlabs;
+package no.fintlabs.oidc;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;

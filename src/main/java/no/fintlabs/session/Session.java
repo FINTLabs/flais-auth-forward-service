@@ -1,8 +1,9 @@
-package no.fintlabs;
+package no.fintlabs.session;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Data;
+import no.fintlabs.oidc.Token;
 
 import java.util.Date;
 

@@ -1,4 +1,4 @@
-package no.fintlabs;
+package no.fintlabs.oidc;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -12,7 +12,7 @@ import java.util.List;
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "fint.sso")
-public class OicdConfiguration {
+public class OidcConfiguration {
     private String clientId;
     private String clientSecret;
     private UriComponentsBuilder issuerUri = UriComponentsBuilder.fromUri(URI.create("https://idp.felleskomponent.no/nidp/oauth/nam"));
