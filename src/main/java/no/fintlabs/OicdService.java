@@ -138,7 +138,12 @@ public class OicdService {
     public String createRedirectUri(HttpHeaders headers) {
         return UriComponentsBuilder.newInstance()
                 .scheme(headers.getFirst(X_FORWARDED_PROTO))
-                .port((Objects.requireNonNull(headers.getFirst(X_FORWARDED_PORT)).equalsIgnoreCase("80") || Objects.requireNonNull(headers.getFirst(X_FORWARDED_PORT)).equalsIgnoreCase("443")) ? "" : headers.getFirst(X_FORWARDED_PORT))
+                .port(
+                        (Objects.requireNonNull(headers.getFirst(X_FORWARDED_PORT)).equalsIgnoreCase("80")
+                                || Objects.requireNonNull(headers.getFirst(X_FORWARDED_PORT)).equalsIgnoreCase("443"))
+                                ? null
+                                : headers.getFirst(X_FORWARDED_PORT)
+                )
                 .host(headers.getFirst(X_FORWARDED_HOST))
                 .path("/callback")
                 .build()

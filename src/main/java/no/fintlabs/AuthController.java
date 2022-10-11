@@ -36,7 +36,6 @@ public class AuthController {
 
     @GetMapping("auth")
     public Mono<Void> auth(@RequestHeader HttpHeaders headers,
-
                            ServerHttpResponse response,
                            ServerHttpRequest request) throws UnsupportedEncodingException {
         log.debug("Request headers:");
