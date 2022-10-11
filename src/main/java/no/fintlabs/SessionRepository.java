@@ -2,6 +2,7 @@ package no.fintlabs;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -9,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+
+@Slf4j
 @Repository
 public class SessionRepository {
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
@@ -38,6 +41,7 @@ public class SessionRepository {
     }
 
     public Optional<Session> getTokenByState(String state) {
+        log.debug("Session ({}) with exists: {}", state, sessions.containsKey(state));
         return Optional.ofNullable(sessions.get(state));
     }
 

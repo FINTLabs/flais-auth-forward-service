@@ -51,6 +51,7 @@ public class AuthController {
             response.getHeaders().add(HttpHeaders.AUTHORIZATION, String.format("%s %s", StringUtils.capitalize(session.getToken().getTokenType()), session.getToken().getAccessToken()));
             response.setStatusCode(HttpStatus.OK);
         } catch (MissingAuthentication e) {
+            log.debug("Missing authentication!");
             response.setStatusCode(HttpStatus.FOUND);
             response.getHeaders().setLocation(oicdService.createAuthorizationUriAndSession(headers));
         }

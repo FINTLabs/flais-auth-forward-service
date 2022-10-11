@@ -1,5 +1,6 @@
 package no.fintlabs;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -12,6 +13,7 @@ import org.springframework.util.MultiValueMap;
 import java.time.Duration;
 import java.util.*;
 
+@Slf4j
 @Service
 public class CookieService {
     public static final String COOKIE_NAME = "user_session";
@@ -32,10 +34,12 @@ public class CookieService {
             if (user_session.size() == 1) {
                 HttpCookie cookie = user_session.get(0);
                 if (cookieValueIsValid(cookie.getValue())) {
+                    log.debug("Cookie is valid!");
                     return Optional.of(cookie);
                 }
             }
         }
+        log.debug("Cookie is not valid");
         return Optional.empty();
     }
 
@@ -63,7 +67,9 @@ public class CookieService {
 
     private boolean cookieValueIsValid(String value) {
         String[] values = value.split("\\|");
-        return createHash(values[1]).equals(values[0]);
+        boolean cookieValueIsValid = createHash(values[1]).equals(values[0]);
+        log.debug("Cookie value is valid: {}", cookieValueIsValid);
+        return cookieValueIsValid;
     }
 
     public static String createHash(String value) {
