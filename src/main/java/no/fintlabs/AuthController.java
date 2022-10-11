@@ -13,6 +13,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -67,16 +68,17 @@ public class AuthController {
         return oicdService.fetchToken(params, headers)
                 .flatMap(token -> {
 
+                    URI authUri = UriComponentsBuilder.newInstance()
+                            .scheme(oicdService.getProtocol(headers))
+                            .port(oicdService.getPort(headers))
+                            .host(headers.getFirst("x-forwarded-host"))
+                            .path("/auth")
+                            .build()
+                            .toUri();
+
+                    log.debug("Redirecting to {}", authUri);
                     response.setStatusCode(HttpStatus.FOUND);
-                    response.getHeaders().setLocation(
-                            UriComponentsBuilder.newInstance()
-                                    .scheme(oicdService.getProtocol(headers))
-                                    .port(oicdService.getPort(headers))
-                                    .host(headers.getFirst("x-forwarded-host"))
-                                    .path("/auth")
-                                    .build()
-                                    .toUri()
-                    );
+                    response.getHeaders().setLocation(authUri);
 
                     response.addCookie(cookieService.createCookie(params, headers));
                     return response.setComplete();
