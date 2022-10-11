@@ -1,4 +1,9 @@
+fint:
+  sso:
+    redirect-after-logout-uri: https://vigoiks.no
+
 logging:
   level:
     no:
       fintlabs: debug
+

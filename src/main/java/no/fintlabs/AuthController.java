@@ -14,10 +14,9 @@ import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+
+import static no.fintlabs.CookieService.COOKIE_NAME;
 
 @Slf4j
 @RestController
@@ -50,11 +49,11 @@ public class AuthController {
             Session session = sessionRepository.getTokenByState(CookieService.getStateFromValue(cookie.getValue())).orElseThrow(MissingAuthentication::new);
             oicdService.verifyToken(session.getToken());
 
-            URI xForwardedUri = URI.create(Objects.requireNonNull(headers.getFirst("X-Forwarded-Uri")));
+            URI forwardTo = URI.create(Optional.ofNullable(headers.getFirst("X-Forwarded-Uri")).orElse("/_oauth/test"));
             log.debug("Authentication is ok!");
-            log.debug("Redirecting to {}", xForwardedUri);
+            log.debug("Redirecting to {}", forwardTo);
             response.setStatusCode(HttpStatus.FOUND);
-            response.getHeaders().setLocation(URI.create(Objects.requireNonNull(headers.getFirst("X-Forwarded-Uri"))));
+            response.getHeaders().setLocation(forwardTo);
             response.getHeaders().add(HttpHeaders.AUTHORIZATION, String.format("%s %s", StringUtils.capitalize(session.getToken().getTokenType()), session.getToken().getAccessToken()));
         } catch (MissingAuthentication e) {
             URI authorizationUri = oicdService.createAuthorizationUriAndSession(headers);
@@ -95,14 +94,24 @@ public class AuthController {
                     response.setStatusCode(HttpStatus.FOUND);
                     response.getHeaders().setLocation(authUri);
 
-                    response.addCookie(cookieService.createCookie(params, headers));
+                    response.addCookie(cookieService.createAuthenticationCookie(params));
                     return response.setComplete();
                 });
+    }
+
+    @GetMapping("logout")
+    public Mono<Void> logout(@CookieValue(value = COOKIE_NAME, required = false) Optional<String> cookieValue, ServerHttpResponse response) {
+            return oicdService.logout(response, cookieValue);
     }
 
     @GetMapping("sessions")
     public Mono<Collection<Session>> getAutenticatedUser() {
         return Mono.just(sessionRepository.getSessions());
+    }
+
+    @GetMapping("test")
+    public Mono<String> test() {
+        return Mono.just("Hello world!");
     }
 
     @ExceptionHandler(Exception.class)

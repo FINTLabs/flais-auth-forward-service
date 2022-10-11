@@ -19,4 +19,5 @@ public class OicdConfiguration {
     private List<String> scopes = Arrays.asList("end-user-profile", "openid");
     private long sessionMaxAgeInMinutes = 5;
     private boolean enforceHttps = true;
+    private URI redirectAfterLogoutUri;
 }

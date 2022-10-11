@@ -36,8 +36,9 @@ public class SessionRepository {
         sessions.put(state, session);
     }
 
-    public void clearToken(String state) {
-        sessions.remove(state);
+    public void clearSession(String sessionId) {
+
+        sessions.remove(CookieService.getStateFromValue(sessionId));
     }
 
     public Optional<Session> getTokenByState(String state) {

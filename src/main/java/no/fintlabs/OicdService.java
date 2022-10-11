@@ -9,7 +9,9 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -21,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.auth0.jwt.algorithms.Algorithm.RSA256;
 
@@ -39,12 +42,15 @@ public class OicdService {
     @Getter
     private WellKnownConfiguration wellKnownConfiguration;
 
+    private final CookieService cookieService;
+
     private Jwk jwk;
 
-    public OicdService(OicdConfiguration oicdConfiguration, WebClient webClient, SessionRepository sessionRepository) {
+    public OicdService(OicdConfiguration oicdConfiguration, WebClient webClient, SessionRepository sessionRepository, CookieService cookieService) {
         this.oicdConfiguration = oicdConfiguration;
         this.webClient = webClient;
         this.sessionRepository = sessionRepository;
+        this.cookieService = cookieService;
     }
 
     @PostConstruct
@@ -112,6 +118,22 @@ public class OicdService {
                     log.debug(jwks.toString());
                     jwk = jwks;
                 });
+    }
+
+    public Mono<Void> logout(ServerHttpResponse response, Optional<String> cookieValue) {
+
+        cookieValue.ifPresent(s -> {
+            log.debug("{} sessions in session repository before logout", sessionRepository.getSessions().size());
+            sessionRepository.clearSession(s);
+            log.debug("{} sessions in session repository after logout", sessionRepository.getSessions().size());
+
+            response.addCookie(cookieService.createLogoutCookie(s));
+
+        });
+        response.setStatusCode(HttpStatus.FOUND);
+        //response.getHeaders().setLocation(oicdConfiguration.getRedirectAfterLogoutUri());
+
+        return response.setComplete();
     }
 
     public URI createAuthorizationUriAndSession(HttpHeaders headers) throws UnsupportedEncodingException {

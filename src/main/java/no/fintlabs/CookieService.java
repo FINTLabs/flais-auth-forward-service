@@ -43,30 +43,40 @@ public class CookieService {
         return Optional.empty();
     }
 
-    public ResponseCookie createCookie(Map<String, String> params, HttpHeaders headers) {
+    public ResponseCookie createAuthenticationCookie(Map<String, String> params) {
 
         return ResponseCookie.from(COOKIE_NAME, createCookieValue(params.get("state")))
-                .domain(headers.getFirst("x-forwarded-host"))
+                //.domain(headers.getFirst("x-forwarded-host"))
                 .httpOnly(true)
                 .sameSite("Lax")
                 .maxAge(Duration.ofMinutes(oicdConfiguration.getSessionMaxAgeInMinutes()))
-                .secure(oicdConfiguration.isEnforceHttps()/*Objects.requireNonNull(headers.getFirst("x-forwarded-proto")).equalsIgnoreCase("https")*/)
+                .secure(oicdConfiguration.isEnforceHttps())
+                .path("/")
+                .build();
+    }
+
+    public ResponseCookie createLogoutCookie(String cookieValue) {
+        return ResponseCookie.from(COOKIE_NAME, cookieValue)
+                .httpOnly(true)
+                .sameSite("Lax")
+                .maxAge(0)
+                .secure(oicdConfiguration.isEnforceHttps())
                 .path("/")
                 .build();
     }
 
     public static String createCookieValue(String value) {
-        return String.format("%s|%s", createHash(value), value);
+        return String.format("%s.%s", createHash(value), value);
     }
 
     public static String getStateFromValue(String value) {
-        List<String> cookieValues = Arrays.asList(value.split("\\|"));
+        List<String> cookieValues = Arrays.asList(value.split("\\."));
 
         return cookieValues.get(1);
     }
 
     private boolean cookieValueIsValid(String value) {
-        String[] values = value.split("\\|");
+        String[] values = value.split("\\.");
         boolean cookieValueIsValid = createHash(values[1]).equals(values[0]);
         log.debug("Cookie value is valid: {}", cookieValueIsValid);
         return cookieValueIsValid;
