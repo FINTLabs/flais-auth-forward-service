@@ -14,12 +14,8 @@ public class SessionRepository {
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
     public void addSession(String state, String codeVerifier) {
-        //DecodedJWT jwt = JWT.decode(token.getAccessToken());
 
         Session session = Session.builder()
-                //.upn(jwt.getClaims().get("email").asString())
-                //.expires(jwt.getExpiresAt())
-                //.token(token)
                 .codeVerifier(codeVerifier)
                 .build();
 

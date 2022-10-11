@@ -14,13 +14,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Map;
-import java.util.Objects;
 
 import static com.auth0.jwt.algorithms.Algorithm.RSA256;
 
@@ -28,6 +28,10 @@ import static com.auth0.jwt.algorithms.Algorithm.RSA256;
 @Service
 public class OicdService {
 
+    public static final String WELL_KNOWN_OPENID_CONFIGURATION_PATH = ".well-known/openid-configuration";
+    public static final String X_FORWARDED_PROTO = "x-forwarded-proto";
+    public static final String X_FORWARDED_PORT = "x-forwarded-port";
+    public static final String X_FORWARDED_HOST = "x-forwarded-host";
     private final OicdConfiguration oicdConfiguration;
     private final WebClient webClient;
 
@@ -35,7 +39,7 @@ public class OicdService {
     @Getter
     private WellKnownConfiguration wellKnownConfiguration;
 
-    private JwkRepository jwkRepository;
+    private Jwk jwk;
 
     public OicdService(OicdConfiguration oicdConfiguration, WebClient webClient, SessionRepository sessionRepository) {
         this.oicdConfiguration = oicdConfiguration;
@@ -48,8 +52,8 @@ public class OicdService {
         getWellKnowConfiguration();
     }
 
-    public void fetchToken(Map<String, String> params, Map<String, String> headers) {
-        Token token = webClient.post()
+    public Mono<Token> fetchToken(Map<String, String> params, Map<String, String> headers) {
+        return webClient.post()
                 .uri(getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .body(BodyInserters
@@ -61,23 +65,19 @@ public class OicdService {
                 )
                 .retrieve()
                 .bodyToMono(Token.class)
-//                .map(token -> {
-//                    log.debug(token.toString());
-//                    sessionRepository.updateSession(params.get("state"), token);
-//                    return token;
-//                })
-                .block();
-
-
-        log.debug(Objects.requireNonNull(token).toString());
-        sessionRepository.updateSession(params.get("state"), token);
+                .map(token -> {
+                    log.debug("Got token:");
+                    log.debug(token.toString());
+                    sessionRepository.updateSession(params.get("state"), token);
+                    return token;
+                });
     }
 
     public void verifyToken(Token token) throws MissingAuthentication {
 
         try {
             DecodedJWT jwt = JWT.decode(token.getAccessToken());
-            Key key = jwkRepository.getKeyById(jwt.getKeyId()).orElseThrow();
+            Key key = jwk.getKeyById(jwt.getKeyId()).orElseThrow();
             Algorithm algorithm = RSA256((RSAPublicKey) key.getPublicKey(), null);
             algorithm.verify(jwt);
         } catch (SignatureVerificationException | InvalidPublicKeyException e) {
@@ -87,32 +87,34 @@ public class OicdService {
     }
 
     private void getWellKnowConfiguration() {
-        log.info("Retrieving well know OpenId configuration");
-        webClient.get().uri("/nidp/oauth/nam/.well-known/openid-configuration")
+        log.info("Retrieving well know OpenId configuration...");
+        webClient
+                .get()
+                .uri(oicdConfiguration.getIssuerUri().pathSegment(WELL_KNOWN_OPENID_CONFIGURATION_PATH).build().toUri())
                 .retrieve()
                 .bodyToMono(WellKnownConfiguration.class)
                 .subscribe(configuration -> {
-                    log.info("Got well know OpenId configuration:");
-                    log.info(configuration.toString());
+                    log.debug("Got well know OpenId configuration:");
+                    log.debug(configuration.toString());
                     wellKnownConfiguration = configuration;
                     getJwks();
                 });
     }
 
     private void getJwks() {
-        log.info("Retrieving JWKs");
+        log.info("Retrieving JWKs...");
         webClient.get()
                 .uri(wellKnownConfiguration.getJwksUri())
                 .retrieve()
-                .bodyToMono(JwkRepository.class)
+                .bodyToMono(Jwk.class)
                 .subscribe(jwks -> {
-                    log.info("Got JWKs:");
-                    log.info(jwks.toString());
-                    jwkRepository = jwks;
+                    log.debug("Got JWKs:");
+                    log.debug(jwks.toString());
+                    jwk = jwks;
                 });
     }
 
-    public String createAuthorizationUriAndSession(Map<String, String> headers) throws UnsupportedEncodingException {
+    public URI createAuthorizationUriAndSession(Map<String, String> headers) throws UnsupportedEncodingException {
         String state = RandomStringUtils.randomAlphanumeric(32);
         String codeVerifier = PkceUtil.generateCodeVerifier();
 
@@ -128,17 +130,18 @@ public class OicdService {
                 .queryParam("client_id", oicdConfiguration.getClientId())
                 .queryParam("scope", String.join("+", oicdConfiguration.getScopes()))
                 .build()
-                .toUriString();
+                .toUri();
 
     }
 
     public String createRedirectUri(Map<String, String> headers) {
         return UriComponentsBuilder.newInstance()
-                .scheme(headers.get("x-forwarded-proto"))
-                .port((headers.get("x-forwarded-port").equalsIgnoreCase("80") || headers.get("x-forwarded-port").equalsIgnoreCase("443")) ? "" : headers.get("x-forwarded-port"))
-                .host(headers.get("x-forwarded-host"))
+                .scheme(headers.get(X_FORWARDED_PROTO))
+                .port((headers.get(X_FORWARDED_PORT).equalsIgnoreCase("80") || headers.get(X_FORWARDED_PORT).equalsIgnoreCase("443")) ? "" : headers.get(X_FORWARDED_PORT))
+                .host(headers.get(X_FORWARDED_HOST))
                 .path("/callback")
                 .build()
                 .toUriString();
     }
+
 }

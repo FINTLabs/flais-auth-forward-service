@@ -3,7 +3,9 @@ package no.fintlabs;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
@@ -13,7 +15,7 @@ import java.util.List;
 public class OicdConfiguration {
     private String clientId;
     private String clientSecret;
-    private String issuerUri = "https://idp.felleskomponent.no/nidp/oauth/nam";
+    private UriComponentsBuilder issuerUri = UriComponentsBuilder.fromUri(URI.create("https://idp.felleskomponent.no/nidp/oauth/nam"));
     private List<String> scopes = Arrays.asList("end-user-profile", "openid");
     private long sessionMaxAgeInMinutes = 5;
 }

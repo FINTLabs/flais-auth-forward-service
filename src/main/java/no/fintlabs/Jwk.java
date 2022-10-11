@@ -9,7 +9,7 @@ import java.util.Optional;
 
 
 @Data
-public class JwkRepository {
+public class Jwk {
 
     @JsonProperty("keys")
     private List<Key> keys = new ArrayList<>();

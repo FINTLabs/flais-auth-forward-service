@@ -9,6 +9,6 @@ public class WebClientConfig {
 
     @Bean
     public WebClient webClient() {
-        return WebClient.create("https://idp.felleskomponent.no");
+        return WebClient.create();
     }
 }
