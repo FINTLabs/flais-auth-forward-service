@@ -29,15 +29,14 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.auth0.jwt.algorithms.Algorithm.RSA256;
+import static no.fintlabs.Headers.*;
 
 @Slf4j
 @Service
 public class OidcService {
 
     public static final String WELL_KNOWN_OPENID_CONFIGURATION_PATH = ".well-known/openid-configuration";
-    public static final String X_FORWARDED_PROTO = "x-forwarded-proto";
-    public static final String X_FORWARDED_PORT = "x-forwarded-port";
-    public static final String X_FORWARDED_HOST = "x-forwarded-host";
+
     private final OidcConfiguration oidcConfiguration;
     private final WebClient webClient;
 

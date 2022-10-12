@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
+import static no.fintlabs.Headers.X_FORWARDED_URI;
 import static no.fintlabs.session.CookieService.COOKIE_NAME;
 
 @Slf4j
@@ -42,25 +43,23 @@ public class AuthController {
     }
 
     @GetMapping
-    public Mono<Void> auth(@RequestHeader HttpHeaders headers,
-                           ServerHttpResponse response,
-                           ServerHttpRequest request) throws UnsupportedEncodingException {
-        log.debug("Hitting /auth");
-        log.debug("Request headers:");
-        headers.forEach((s, s2) -> log.debug("\t{}: {}", s, s2));
+    public Mono<Void> oauth(@RequestHeader HttpHeaders headers,
+                            ServerHttpResponse response,
+                            ServerHttpRequest request) throws UnsupportedEncodingException {
+        log.debug("Calling {}", request.getPath());
+        logForwardedHeaders(headers);
 
         try {
-            Optional.ofNullable(headers.getFirst("X-Forwarded-Uri")).ifPresent(s -> response.getHeaders().set("X-Forwarded-Uri", s));
+            String xForwardedUri = Optional.ofNullable(headers.getFirst(X_FORWARDED_URI)).orElse("/");
+            response.getHeaders().set(X_FORWARDED_URI, xForwardedUri);
+            log.debug("{} set to {}", X_FORWARDED_URI, xForwardedUri);
 
             HttpCookie cookie = cookieService.verifyCookie(request.getCookies()).orElseThrow(MissingAuthentication::new);
             Session session = sessionRepository.getTokenByState(CookieService.getStateFromValue(cookie.getValue())).orElseThrow(MissingAuthentication::new);
             oidcService.verifyToken(session.getToken());
 
-            //URI forwardTo = URI.create(Optional.ofNullable(headers.getFirst("X-Forwarded-Uri")).orElse("/"));
             log.debug("Authentication is ok!");
-            //log.debug("Redirecting to {}", forwardTo);
             response.setStatusCode(HttpStatus.OK);
-            //response.getHeaders().setLocation(forwardTo);
             response.getHeaders().add(HttpHeaders.AUTHORIZATION, String.format("%s %s", StringUtils.capitalize(session.getToken().getTokenType()), session.getToken().getAccessToken()));
         } catch (MissingAuthentication e) {
             URI authorizationUri = oidcService.createAuthorizationUriAndSession(headers);
@@ -74,15 +73,24 @@ public class AuthController {
 
     }
 
+    private void logForwardedHeaders(HttpHeaders headers) {
+        log.debug("X-Forwarded headers:");
+        headers.forEach((s, s2) -> {
+            if (s.toLowerCase().startsWith("x-forwarded")) {
+                log.debug("\t{}: {}", s, s2);
+            }
+        });
+    }
+
 
     @GetMapping("callback")
     public Mono<Void> callback(@RequestParam Map<String, String> params,
                                @RequestHeader HttpHeaders headers,
-                               ServerHttpResponse response) {
+                               ServerHttpResponse response,
+                               ServerHttpRequest request) {
 
-        log.debug("Hitting /callback");
-        log.debug("Request headers:");
-        headers.forEach((s, s2) -> log.debug("\t{}: {}", s, s2));
+        log.debug("Calling {}", request.getPath());
+        logForwardedHeaders(headers);
         log.debug("Request parameters:");
         params.forEach((s, s2) -> log.debug("\t{}: {}", s, s2));
 
