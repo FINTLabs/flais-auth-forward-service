@@ -18,7 +18,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 60
       containers:
-      - image: ghcr.io/fintlabs/flais-auth-forward-service:sha-fbd3bc9
+      - image: ghcr.io/fintlabs/flais-auth-forward-service:sha-331a9f4
         name: traefik-forward-auth
         ports:
         - containerPort: 8080

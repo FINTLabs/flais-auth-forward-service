@@ -69,7 +69,7 @@ public class AuthController {
             response.getHeaders().setLocation(authorizationUri);
         }
 
-        return response.setComplete();
+        return response.setComplete() ;
 
     }
 
