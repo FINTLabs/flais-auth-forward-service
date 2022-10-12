@@ -51,7 +51,7 @@ public class AuthController {
 
         try {
             String xForwardedUri = Optional.ofNullable(headers.getFirst(X_FORWARDED_URI)).orElse("/");
-            response.getHeaders().set(X_FORWARDED_URI, "https://frode-test.fintlabs.no");
+            response.getHeaders().set(X_FORWARDED_URI, xForwardedUri);
             log.debug("{} set to {}", X_FORWARDED_URI, xForwardedUri);
 
             HttpCookie cookie = cookieService.verifyCookie(request.getCookies()).orElseThrow(MissingAuthentication::new);
@@ -101,7 +101,7 @@ public class AuthController {
                             .scheme(oidcService.getProtocol(headers))
                             .port(oidcService.getPort(headers))
                             .host(headers.getFirst("x-forwarded-host"))
-                            .path("/_oauth")
+                            .path("/")
                             .build()
                             .toUri();
 
