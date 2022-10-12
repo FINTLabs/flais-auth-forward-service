@@ -51,7 +51,7 @@ public class AuthController {
 
         try {
             String xForwardedUri = Optional.ofNullable(headers.getFirst(X_FORWARDED_URI)).orElse("/");
-            response.getHeaders().set(X_FORWARDED_URI, xForwardedUri);
+            response.getHeaders().set(X_FORWARDED_URI, "https://frode-test.fintlabs.no");
             log.debug("{} set to {}", X_FORWARDED_URI, xForwardedUri);
 
             HttpCookie cookie = cookieService.verifyCookie(request.getCookies()).orElseThrow(MissingAuthentication::new);
