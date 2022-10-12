@@ -50,16 +50,17 @@ public class AuthController {
         headers.forEach((s, s2) -> log.debug("\t{}: {}", s, s2));
 
         try {
+            Optional.ofNullable(headers.getFirst("X-Forwarded-Uri")).ifPresent(s -> response.getHeaders().set("X-Forwarded-Uri", s));
 
             HttpCookie cookie = cookieService.verifyCookie(request.getCookies()).orElseThrow(MissingAuthentication::new);
             Session session = sessionRepository.getTokenByState(CookieService.getStateFromValue(cookie.getValue())).orElseThrow(MissingAuthentication::new);
             oidcService.verifyToken(session.getToken());
 
-            URI forwardTo = URI.create(Optional.ofNullable(headers.getFirst("X-Forwarded-Uri")).orElse("/"));
+            //URI forwardTo = URI.create(Optional.ofNullable(headers.getFirst("X-Forwarded-Uri")).orElse("/"));
             log.debug("Authentication is ok!");
-            log.debug("Redirecting to {}", forwardTo);
-            response.setStatusCode(HttpStatus.FOUND);
-            response.getHeaders().setLocation(forwardTo);
+            //log.debug("Redirecting to {}", forwardTo);
+            response.setStatusCode(HttpStatus.OK);
+            //response.getHeaders().setLocation(forwardTo);
             response.getHeaders().add(HttpHeaders.AUTHORIZATION, String.format("%s %s", StringUtils.capitalize(session.getToken().getTokenType()), session.getToken().getAccessToken()));
         } catch (MissingAuthentication e) {
             URI authorizationUri = oidcService.createAuthorizationUriAndSession(headers);
@@ -67,7 +68,6 @@ public class AuthController {
             log.debug("Redirecting to {}", authorizationUri);
             response.setStatusCode(HttpStatus.FOUND);
             response.getHeaders().setLocation(authorizationUri);
-            Optional.ofNullable(headers.getFirst("X-Forwarded-Uri")).ifPresent(s -> response.getHeaders().set("X-Forwarded-Uri", s));
         }
 
         return response.setComplete();
