@@ -1,14 +1,13 @@
 package no.fintlabs.session;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.MissingAuthentication;
 import no.fintlabs.oidc.OidcConfiguration;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.springframework.http.HttpCookie;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
-import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -29,21 +28,14 @@ public class CookieService {
         this.oidcConfiguration = oidcConfiguration;
     }
 
-    public Optional<HttpCookie> verifyCookie(MultiValueMap<String, HttpCookie> cookies) {
+    public String verifyCookie(Optional<String> cookieValue) throws MissingAuthentication {
 
-
-        if (cookies.containsKey(COOKIE_NAME)) {
-            List<HttpCookie> user_session = cookies.get(COOKIE_NAME);
-            if (user_session.size() == 1) {
-                HttpCookie cookie = user_session.get(0);
-                if (cookieValueIsValid(cookie.getValue())) {
-                    log.debug("Cookie is valid!");
-                    return Optional.of(cookie);
-                }
-            }
+        String value = cookieValue.orElseThrow(MissingAuthentication::new);
+        if (cookieValueIsValid(value)) {
+            return value;
         }
-        log.debug("Cookie is not valid");
-        return Optional.empty();
+        throw new MissingAuthentication();
+
     }
 
     public ResponseCookie createAuthenticationCookie(Map<String, String> params) {

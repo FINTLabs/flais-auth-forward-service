@@ -6,7 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.oidc.Token;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,24 +20,24 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SessionRepository {
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
-    public void addSession(String state, String codeVerifier) {
+    public void addSession(String sessionId, String codeVerifier) {
 
         Session session = Session.builder()
                 .codeVerifier(codeVerifier)
                 .build();
 
-        sessions.put(state, session);
+        sessions.put(sessionId, session);
     }
 
-    public void updateSession(String state, Token token) {
+    public void updateSession(String sessionId, Token token) {
         DecodedJWT jwt = JWT.decode(token.getAccessToken());
 
-        Session session = sessions.get(state);
+        Session session = sessions.get(sessionId);
         session.setToken(token);
         session.setUpn(jwt.getClaims().get("email").asString());
-        session.setExpires(jwt.getExpiresAt());
+        session.setExpires(dateToLocalDateTime(jwt.getExpiresAt()));
 
-        sessions.put(state, session);
+        sessions.put(sessionId, session);
     }
 
     public void clearSession(String sessionId) {
@@ -42,12 +45,18 @@ public class SessionRepository {
         sessions.remove(CookieService.getStateFromValue(sessionId));
     }
 
-    public Optional<Session> getTokenByState(String state) {
-        log.debug("Session ({}) with exists: {}", state, sessions.containsKey(state));
-        return Optional.ofNullable(sessions.get(state));
+    public Optional<Session> getTokenBySessionId(String sessionId) {
+        log.debug("Session ({}) with exists: {}", sessionId, sessions.containsKey(sessionId));
+        return Optional.ofNullable(sessions.get(sessionId));
     }
 
     public Collection<Session> getSessions() {
         return sessions.values();
+    }
+
+    private LocalDateTime dateToLocalDateTime(Date dateToConvert) {
+        return dateToConvert.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
     }
 }

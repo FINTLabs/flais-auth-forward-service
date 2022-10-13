@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import no.fintlabs.oidc.Token;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Data
@@ -14,6 +15,6 @@ public class Session {
     private Token token;
     @JsonIgnore
     private String codeVerifier;
-    private Date expires;
+    private LocalDateTime expires;
     private String upn;
 }

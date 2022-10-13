@@ -5,7 +5,6 @@ import no.fintlabs.oidc.OidcService;
 import no.fintlabs.session.CookieService;
 import no.fintlabs.session.Session;
 import no.fintlabs.session.SessionRepository;
-import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +12,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
@@ -22,7 +21,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
-import static no.fintlabs.Headers.X_FORWARDED_URI;
 import static no.fintlabs.session.CookieService.COOKIE_NAME;
 
 @Slf4j
@@ -43,34 +41,86 @@ public class AuthController {
     }
 
     @GetMapping
-    public Mono<Void> oauth(@RequestHeader HttpHeaders headers,
+    public Mono<Void> oauth(@CookieValue(value = COOKIE_NAME, required = false) Optional<String> cookieValue,
+                            @RequestHeader HttpHeaders headers,
                             ServerHttpResponse response,
                             ServerHttpRequest request) throws UnsupportedEncodingException {
+
         log.debug("Calling {}", request.getPath());
         logForwardedHeaders(headers);
 
         try {
-            String xForwardedUri = Optional.ofNullable(headers.getFirst(X_FORWARDED_URI)).orElse("/");
-            response.getHeaders().set(X_FORWARDED_URI, xForwardedUri);
-            log.debug("{} set to {}", X_FORWARDED_URI, xForwardedUri);
 
-            HttpCookie cookie = cookieService.verifyCookie(request.getCookies()).orElseThrow(MissingAuthentication::new);
-            Session session = sessionRepository.getTokenByState(CookieService.getStateFromValue(cookie.getValue())).orElseThrow(MissingAuthentication::new);
+            String verifiedCookieValue = cookieService.verifyCookie(cookieValue);
+            Session session = sessionRepository
+                    .getTokenBySessionId(CookieService.getStateFromValue(verifiedCookieValue))
+                    .orElseThrow(MissingAuthentication::new);
             oidcService.verifyToken(session.getToken());
 
             log.debug("Authentication is ok!");
             response.setStatusCode(HttpStatus.OK);
             response.getHeaders().add(HttpHeaders.AUTHORIZATION, String.format("%s %s", StringUtils.capitalize(session.getToken().getTokenType()), session.getToken().getAccessToken()));
+
         } catch (MissingAuthentication e) {
+
             URI authorizationUri = oidcService.createAuthorizationUriAndSession(headers);
             log.debug("Missing authentication!");
             log.debug("Redirecting to {}", authorizationUri);
-            response.setStatusCode(HttpStatus.FOUND);
+            response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
             response.getHeaders().setLocation(authorizationUri);
         }
 
-        return response.setComplete() ;
+        return response.setComplete();
+    }
 
+    @GetMapping("callback")
+    public Mono<Void> callback(@RequestParam Map<String, String> queryParameters,
+                               @RequestHeader HttpHeaders headers,
+                               ServerHttpResponse response,
+                               ServerHttpRequest request) {
+
+        log.debug("Calling {}", request.getPath());
+        logForwardedHeaders(headers);
+        log.debug("Request parameters:");
+        queryParameters.forEach((s, s2) -> log.debug("\t{}: {}", s, s2));
+
+        return oidcService.fetchToken(queryParameters, headers)
+                .flatMap(token -> {
+
+                    response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
+                    response.getHeaders().setLocation(oidcService.createRedirectAfterLoginUri(headers));
+                    response.addCookie(cookieService.createAuthenticationCookie(queryParameters));
+
+                    return response.setComplete();
+                });
+    }
+
+    @GetMapping("logout")
+    public Mono<Void> logout(@CookieValue(value = COOKIE_NAME, required = false) Optional<String> cookieValue,
+                             ServerHttpResponse response,
+                             ServerHttpRequest request) {
+
+        log.debug("Calling {}", request.getPath());
+
+        return oidcService.logout(response, cookieValue);
+    }
+
+
+
+    @GetMapping("sessions")
+    public Mono<Collection<Session>> getAutenticatedUser(ServerHttpRequest request) {
+
+        log.debug("Calling {}", request.getPath());
+
+        return Mono.just(sessionRepository.getSessions());
+    }
+
+    @GetMapping("test")
+    public Mono<String> test(ServerHttpRequest request) {
+
+        log.debug("Calling {}", request.getPath());
+
+        return Mono.just("Greetings from FINTLabs!");
     }
 
     private void logForwardedHeaders(HttpHeaders headers) {
@@ -80,53 +130,6 @@ public class AuthController {
                 log.debug("\t{}: {}", s, s2);
             }
         });
-    }
-
-
-    @GetMapping("callback")
-    public Mono<Void> callback(@RequestParam Map<String, String> params,
-                               @RequestHeader HttpHeaders headers,
-                               ServerHttpResponse response,
-                               ServerHttpRequest request) {
-
-        log.debug("Calling {}", request.getPath());
-        logForwardedHeaders(headers);
-        log.debug("Request parameters:");
-        params.forEach((s, s2) -> log.debug("\t{}: {}", s, s2));
-
-        return oidcService.fetchToken(params, headers)
-                .flatMap(token -> {
-
-                    URI authUri = UriComponentsBuilder.newInstance()
-                            .scheme(oidcService.getProtocol(headers))
-                            .port(oidcService.getPort(headers))
-                            .host(headers.getFirst("x-forwarded-host"))
-                            .path("/")
-                            .build()
-                            .toUri();
-
-                    log.debug("Redirecting to {}", authUri);
-                    response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
-                    response.getHeaders().setLocation(authUri);
-
-                    response.addCookie(cookieService.createAuthenticationCookie(params));
-                    return response.setComplete();
-                });
-    }
-
-    @GetMapping("logout")
-    public Mono<Void> logout(@CookieValue(value = COOKIE_NAME, required = false) Optional<String> cookieValue, ServerHttpResponse response) {
-        return oidcService.logout(response, cookieValue);
-    }
-
-    @GetMapping("sessions")
-    public Mono<Collection<Session>> getAutenticatedUser() {
-        return Mono.just(sessionRepository.getSessions());
-    }
-
-    @GetMapping("test")
-    public Mono<String> test() {
-        return Mono.just("Hello world!");
     }
 
     @ExceptionHandler(Exception.class)

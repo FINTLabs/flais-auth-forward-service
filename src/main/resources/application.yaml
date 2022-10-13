@@ -1,7 +1,12 @@
 fint:
   sso:
-    redirect-after-logout-uri: https://vigoiks.no
+    logout-message: Du er logget ut.
 
+spring:
+  thymeleaf:
+    prefix: file:src/main/resources/templates/
+    reactive:
+      max-chunk-size: 8192
 logging:
   level:
     no:

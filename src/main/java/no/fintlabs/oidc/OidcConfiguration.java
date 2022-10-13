@@ -19,5 +19,7 @@ public class OidcConfiguration {
     private List<String> scopes = Arrays.asList("end-user-profile", "openid");
     private long sessionMaxAgeInMinutes = 5;
     private boolean enforceHttps = true;
-    private URI redirectAfterLogoutUri;
+    private URI redirectAfterLogoutUri = URI.create("/logged-out");
+    private URI redirectAfterLoginUri = URI.create("/");
+    private String logoutMessage;
 }

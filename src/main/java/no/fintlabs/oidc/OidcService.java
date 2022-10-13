@@ -133,7 +133,7 @@ public class OidcService {
 
         });
         response.setStatusCode(HttpStatus.FOUND);
-        //response.getHeaders().setLocation(oicdConfiguration.getRedirectAfterLogoutUri());
+        response.getHeaders().setLocation(oidcConfiguration.getRedirectAfterLogoutUri());
 
         return response.setComplete();
     }
@@ -166,6 +166,20 @@ public class OidcService {
                 .path("/_oauth/callback")
                 .build()
                 .toUriString();
+    }
+
+    public URI createRedirectAfterLoginUri(HttpHeaders headers) {
+        URI redirectUri = UriComponentsBuilder.newInstance()
+                .scheme(getProtocol(headers))
+                .port(getPort(headers))
+                .host(headers.getFirst(X_FORWARDED_HOST))
+                .path("/")
+                .build()
+                .toUri();
+
+        log.debug("Redirecting to {}", redirectUri);
+
+        return redirectUri;
     }
 
     public String getPort(HttpHeaders headers) {
