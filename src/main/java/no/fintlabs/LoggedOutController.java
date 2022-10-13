@@ -17,7 +17,7 @@ public class LoggedOutController {
         this.oidcConfiguration = oidcConfiguration;
     }
 
-    @GetMapping(value = "logged-out")
+    @GetMapping(value = "_oauth/logged-out")
     public Mono<Rendering> loggedOut() {
 
         return Mono.just(Rendering.view("index").modelAttribute("message", oidcConfiguration.getLogoutMessage()).build());
