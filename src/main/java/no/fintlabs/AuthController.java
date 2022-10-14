@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.oidc.OidcService;
 import no.fintlabs.session.CookieService;
 import no.fintlabs.session.Session;
-import no.fintlabs.session.SessionRepository;
+import no.fintlabs.session.ConcurrentHashMapSessionRepository;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +12,6 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
@@ -30,13 +29,13 @@ public class AuthController {
 
     private final OidcService oidcService;
 
-    private final SessionRepository sessionRepository;
+    private final ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository;
 
     private final CookieService cookieService;
 
-    public AuthController(OidcService oidcService, SessionRepository sessionRepository, CookieService cookieService) {
+    public AuthController(OidcService oidcService, ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository, CookieService cookieService) {
         this.oidcService = oidcService;
-        this.sessionRepository = sessionRepository;
+        this.concurrentHashMapSessionRepository = concurrentHashMapSessionRepository;
         this.cookieService = cookieService;
     }
 
@@ -52,7 +51,7 @@ public class AuthController {
         try {
 
             String verifiedCookieValue = cookieService.verifyCookie(cookieValue);
-            Session session = sessionRepository
+            Session session = concurrentHashMapSessionRepository
                     .getTokenBySessionId(CookieService.getStateFromValue(verifiedCookieValue))
                     .orElseThrow(MissingAuthentication::new);
             oidcService.verifyToken(session.getToken());
@@ -112,7 +111,7 @@ public class AuthController {
 
         log.debug("Calling {}", request.getPath());
 
-        return Mono.just(sessionRepository.getSessions());
+        return Mono.just(concurrentHashMapSessionRepository.getSessions());
     }
 
     @GetMapping("test")

@@ -38,10 +38,17 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 	annotationProcessor 'org.projectlombok:lombok'
+	annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'io.projectreactor:reactor-test'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.named('compileJava') {
+	inputs.files(tasks.named('processResources'))
 }
