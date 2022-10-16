@@ -5,7 +5,6 @@ import no.fintlabs.oidc.OidcRequestFactory;
 import no.fintlabs.oidc.OidcService;
 import no.fintlabs.session.CookieService;
 import no.fintlabs.session.Session;
-import no.fintlabs.session.ConcurrentHashMapSessionRepository;
 import no.fintlabs.session.SessionService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -32,16 +31,16 @@ public class AuthController {
     private final OidcService oidcService;
     private final OidcRequestFactory oidcRequestFactory;
 
-    private final ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository;
+    //private final ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository;
 
     private final CookieService cookieService;
 
     private final SessionService sessionService;
 
 
-    public AuthController(OidcService oidcService, ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository, CookieService cookieService, OidcRequestFactory oidcRequestFactory, SessionService sessionService) {
+    public AuthController(OidcService oidcService, /*ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository,*/ CookieService cookieService, OidcRequestFactory oidcRequestFactory, SessionService sessionService) {
         this.oidcService = oidcService;
-        this.concurrentHashMapSessionRepository = concurrentHashMapSessionRepository;
+        //this.concurrentHashMapSessionRepository = concurrentHashMapSessionRepository;
         this.cookieService = cookieService;
         this.oidcRequestFactory = oidcRequestFactory;
         this.sessionService = sessionService;
@@ -69,7 +68,7 @@ public class AuthController {
         } catch (MissingAuthentication e) {
 
             Session session = sessionService.initializeSession();
-            URI authorizationUri = oidcService.createAuthorizationUri(headers, session);
+            URI authorizationUri = oidcService.getAuthorizationUri(headers, session);
             log.debug("Missing authentication!");
             log.debug("Redirecting to {}", authorizationUri);
             response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
@@ -95,7 +94,7 @@ public class AuthController {
 
                     response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
                     response.getHeaders().setLocation(oidcRequestFactory.createRedirectAfterLoginUri(headers));
-                    response.addCookie(cookieService.createAuthenticationCookie(queryParameters));
+                    response.addCookie(cookieService.createAuthenticationCookie(queryParameters, token.getExpiresIn()));
 
                     return response.setComplete();
                 });
@@ -118,7 +117,7 @@ public class AuthController {
 
         log.debug("Calling {}", request.getPath());
 
-        return Mono.just(concurrentHashMapSessionRepository.getSessions());
+        return Mono.just(sessionService.getSessions());
     }
 
     @GetMapping("test")

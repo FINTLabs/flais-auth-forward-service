@@ -17,7 +17,7 @@ public class OidcConfiguration {
     private String clientSecret;
     private UriComponentsBuilder issuerUri = UriComponentsBuilder.fromUri(URI.create("https://idp.felleskomponent.no/nidp/oauth/nam"));
     private List<String> scopes = Arrays.asList("end-user-profile", "openid");
-    private long sessionMaxAgeInMinutes = 5;
+    private long sessionMaxAgeInMinutes = -1;
     private boolean enforceHttps = true;
     private URI redirectAfterLogoutUri = URI.create("/_oauth/logged-out");
     private URI redirectAfterLoginUri = URI.create("/");

@@ -40,13 +40,16 @@ public class CookieService {
 
     }
 
-    public ResponseCookie createAuthenticationCookie(Map<String, String> params) {
+    public ResponseCookie createAuthenticationCookie(Map<String, String> params, long expiresIn) {
 
         return ResponseCookie.from(COOKIE_NAME, createCookieValue(params.get("state")))
                 //.domain(headers.getFirst("x-forwarded-host"))
                 .httpOnly(true)
                 .sameSite("Lax")
-                .maxAge(Duration.ofMinutes(oidcConfiguration.getSessionMaxAgeInMinutes()))
+                .maxAge(oidcConfiguration.getSessionMaxAgeInMinutes() == -1
+                        ? Duration.ofSeconds(expiresIn)
+                        : Duration.ofMinutes(oidcConfiguration.getSessionMaxAgeInMinutes())
+                )
                 .secure(oidcConfiguration.isEnforceHttps())
                 .path("/")
                 .build();

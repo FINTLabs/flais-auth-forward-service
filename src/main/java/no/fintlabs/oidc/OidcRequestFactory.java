@@ -66,7 +66,7 @@ public class OidcRequestFactory {
                 .scheme(getProtocol(headers))
                 .port(getPort(headers))
                 .host(headers.getFirst(X_FORWARDED_HOST))
-                .path("/")
+                .path(oidcConfiguration.getRedirectAfterLoginUri().toString())
                 .build()
                 .toUri();
 

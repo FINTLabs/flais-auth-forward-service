@@ -10,8 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.MissingAuthentication;
 import no.fintlabs.session.CookieService;
 import no.fintlabs.session.Session;
-import no.fintlabs.session.SessionRepository;
-import org.apache.commons.lang3.RandomStringUtils;
+import no.fintlabs.session.SessionService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,7 +21,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Map;
@@ -39,7 +37,7 @@ public class OidcService {
     private final OidcConfiguration oidcConfiguration;
     private final WebClient webClient;
 
-    private final SessionRepository sessionRepository;
+    private final SessionService sessionService;
     @Getter
     private WellKnownConfiguration wellKnownConfiguration;
 
@@ -50,10 +48,10 @@ public class OidcService {
     @Getter
     private Jwk jwk;
 
-    public OidcService(OidcConfiguration oidcConfiguration, WebClient webClient, SessionRepository sessionRepository, CookieService cookieService, OidcRequestFactory oidcRequestFactory) {
+    public OidcService(OidcConfiguration oidcConfiguration, WebClient webClient, SessionService sessionService, CookieService cookieService, OidcRequestFactory oidcRequestFactory) {
         this.oidcConfiguration = oidcConfiguration;
         this.webClient = webClient;
-        this.sessionRepository = sessionRepository;
+        this.sessionService = sessionService;
         this.cookieService = cookieService;
         this.oidcRequestFactory = oidcRequestFactory;
     }
@@ -83,7 +81,7 @@ public class OidcService {
                 .bodyToMono(Token.class)
                 .map(token -> {
                     log.debug("Got token: {}", token.toString());
-                    sessionRepository.updateSession(params.get("state"), token);
+                    sessionService.updateSession(params.get("state"), token);
                     return token;
                 });
     }
@@ -131,9 +129,9 @@ public class OidcService {
     public Mono<Void> logout(ServerHttpResponse response, Optional<String> cookieValue) {
 
         cookieValue.ifPresent(s -> {
-            log.debug("{} sessions in session repository before logout", sessionRepository.getSessions().size());
-            sessionRepository.clearSession(s);
-            log.debug("{} sessions in session repository after logout", sessionRepository.getSessions().size());
+            log.debug("{} sessions in session repository before logout", sessionService.sessionCount());
+            sessionService.clearSession(s);
+            log.debug("{} sessions in session repository after logout", sessionService.sessionCount());
 
             response.addCookie(cookieService.createLogoutCookie(s));
 
@@ -144,7 +142,7 @@ public class OidcService {
         return response.setComplete();
     }
 
-    public URI createAuthorizationUri(HttpHeaders headers, Session session) throws UnsupportedEncodingException {
+    public URI getAuthorizationUri(HttpHeaders headers, Session session) {
 
         return oidcRequestFactory
                 .createAuthorizationUri(wellKnownConfiguration.getAuthorizationEndpoint(), headers, session);

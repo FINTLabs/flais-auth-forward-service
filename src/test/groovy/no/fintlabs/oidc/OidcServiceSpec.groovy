@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.mock.http.server.reactive.MockServerHttpResponse
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder
 import spock.lang.Specification
@@ -37,8 +38,8 @@ class OidcServiceSpec extends Specification {
         sessionRepository = new ConcurrentHashMapSessionRepository()
         cookieService = new CookieService(oidcConfiguration)
         oidcRequestFactory = new OidcRequestFactory(oidcConfiguration)
-        oidcService = new OidcService(oidcConfiguration, WebClient.create(), sessionRepository, cookieService, oidcRequestFactory)
         sessionService = new SessionService(sessionRepository)
+        oidcService = new OidcService(oidcConfiguration, WebClient.create(), sessionService, cookieService, oidcRequestFactory)
 
         def dispatcher = new Dispatcher() {
             @Override
@@ -103,7 +104,7 @@ class OidcServiceSpec extends Specification {
 
         oidcService.fetchWellKnowConfiguration()
         def session = sessionService.initializeSession()
-        def queryParameters = UriComponentsBuilder.fromHttpUrl(oidcService.createAuthorizationUri(headers, session).toString()).build().getQueryParams()
+        def queryParameters = UriComponentsBuilder.fromHttpUrl(oidcService.getAuthorizationUri(headers, session).toString()).build().getQueryParams()
 
 
         when:
@@ -112,5 +113,18 @@ class OidcServiceSpec extends Specification {
         then:
         sessionRepository.getSessions().size() == 1
         sessionRepository.getTokenBySessionId(queryParameters.getFirst("state")).isPresent()
+    }
+
+    def "Logout should remove session"() {
+
+        given:
+        def session = sessionService.initializeSession()
+        def sessionCount = sessionService.sessionCount()
+
+        when:
+        oidcService.logout(new MockServerHttpResponse(), Optional.of("signature." + session.getState()))
+
+        then:
+        (sessionCount - 1) == sessionService.sessionCount()
     }
 }
