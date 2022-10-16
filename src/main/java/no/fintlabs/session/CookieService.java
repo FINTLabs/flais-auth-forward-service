@@ -32,8 +32,10 @@ public class CookieService {
 
         String value = cookieValue.orElseThrow(MissingAuthentication::new);
         if (cookieValueIsValid(value)) {
+            log.debug("Cookie is valid!");
             return value;
         }
+        log.debug("Cookie is not valid!");
         throw new MissingAuthentication();
 
     }

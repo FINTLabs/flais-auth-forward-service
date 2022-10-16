@@ -17,13 +17,16 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ConcurrentHashMapSessionRepository implements SessionRepository {
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
-    public void addSession(String sessionId, String codeVerifier) {
+    public Session addSession(String sessionId, String codeVerifier) {
 
         Session session = Session.builder()
                 .codeVerifier(codeVerifier)
+                .state(sessionId)
                 .build();
 
         sessions.put(sessionId, session);
+
+        return session;
     }
 
     public void updateSession(String sessionId, Token token) {

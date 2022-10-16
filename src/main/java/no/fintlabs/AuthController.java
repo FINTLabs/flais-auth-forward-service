@@ -1,10 +1,12 @@
 package no.fintlabs;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.oidc.OidcRequestFactory;
 import no.fintlabs.oidc.OidcService;
 import no.fintlabs.session.CookieService;
 import no.fintlabs.session.Session;
 import no.fintlabs.session.ConcurrentHashMapSessionRepository;
+import no.fintlabs.session.SessionService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,15 +30,21 @@ import static no.fintlabs.session.CookieService.COOKIE_NAME;
 public class AuthController {
 
     private final OidcService oidcService;
+    private final OidcRequestFactory oidcRequestFactory;
 
     private final ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository;
 
     private final CookieService cookieService;
 
-    public AuthController(OidcService oidcService, ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository, CookieService cookieService) {
+    private final SessionService sessionService;
+
+
+    public AuthController(OidcService oidcService, ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository, CookieService cookieService, OidcRequestFactory oidcRequestFactory, SessionService sessionService) {
         this.oidcService = oidcService;
         this.concurrentHashMapSessionRepository = concurrentHashMapSessionRepository;
         this.cookieService = cookieService;
+        this.oidcRequestFactory = oidcRequestFactory;
+        this.sessionService = sessionService;
     }
 
     @GetMapping
@@ -51,9 +59,7 @@ public class AuthController {
         try {
 
             String verifiedCookieValue = cookieService.verifyCookie(cookieValue);
-            Session session = concurrentHashMapSessionRepository
-                    .getTokenBySessionId(CookieService.getStateFromValue(verifiedCookieValue))
-                    .orElseThrow(MissingAuthentication::new);
+            Session session = sessionService.verifySession(verifiedCookieValue);
             oidcService.verifyToken(session.getToken());
 
             log.debug("Authentication is ok!");
@@ -62,7 +68,8 @@ public class AuthController {
 
         } catch (MissingAuthentication e) {
 
-            URI authorizationUri = oidcService.createAuthorizationUriAndSession(headers);
+            Session session = sessionService.initializeSession();
+            URI authorizationUri = oidcService.createAuthorizationUri(headers, session);
             log.debug("Missing authentication!");
             log.debug("Redirecting to {}", authorizationUri);
             response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
@@ -87,7 +94,7 @@ public class AuthController {
                 .flatMap(token -> {
 
                     response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
-                    response.getHeaders().setLocation(oidcService.createRedirectAfterLoginUri(headers));
+                    response.getHeaders().setLocation(oidcRequestFactory.createRedirectAfterLoginUri(headers));
                     response.addCookie(cookieService.createAuthenticationCookie(queryParameters));
 
                     return response.setComplete();

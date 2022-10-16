@@ -1,0 +1,80 @@
+{
+  "issuer": "http://localhost:8090/",
+  "authorization_endpoint": "http://localhost:8090/authz",
+  "token_endpoint": "http://localhost:8090/token",
+  "userinfo_endpoint": "http://localhost:8090/userinfo",
+  "revocation_endpoint": "http://localhost:8090/revoke",
+  "introspection_endpoint": "http://localhost:8090/nidp/oauth/v1/nam/introspect",
+  "jwks_uri": "http://localhost:8090/keys",
+  "registration_endpoint": "http://localhost:8090/clients",
+  "scopes_supported": [
+    "fint-client-access",
+    "urn:netiq.com:nam:scope:oauth:registration:read",
+    "email",
+    "address",
+    "urn:netiq.com:nam:scope:oauth:registration:full",
+    "phone",
+    "openid"
+  ],
+  "response_types_supported": [
+    "token",
+    "id_token",
+    "code",
+    "token id_token",
+    "code token",
+    "code id_token token",
+    "code id_token",
+    "none"
+  ],
+  "response_modes_supported": [
+    "query",
+    "fragment",
+    "form_post"
+  ],
+  "grant_types_supported": [
+    "authorization_code",
+    "implicit",
+    "password",
+    "client_credentials",
+    "refresh_token"
+  ],
+  "id_token_signing_alg_values_supported": [
+    "RS256"
+  ],
+  "claims_supported": [
+    "fintAccessRead",
+    "fintClientEnvironment",
+    "fintAccessModify",
+    "fintClientAccessPackages",
+    "fintAccessCollection",
+    "read",
+    "email_verified",
+    "email",
+    "address",
+    "add",
+    "modify",
+    "delete",
+    "phone_number_verified",
+    "phone_number"
+  ],
+  "subject_types_supported": [
+    "public"
+  ],
+  "code_challenge_methods_supported": [
+    "plain",
+    "S256"
+  ],
+  "token_endpoint_auth_methods_supported": [
+    "client_secret_post",
+    "client_secret_basic"
+  ],
+  "revocation_endpoint_auth_methods_supported": [
+    "client_secret_post",
+    "client_secret_basic"
+  ],
+  "introspection_endpoint_auth_methods_supported": [
+    "client_secret_post",
+    "client_secret_basic",
+    "bearer"
+  ]
+}

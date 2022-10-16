@@ -13,8 +13,13 @@ import java.util.Date;
 public class Session {
     @JsonIgnore
     private Token token;
+
     @JsonIgnore
     private String codeVerifier;
+
+    @JsonIgnore
+    private String state;
+
     private LocalDateTime expires;
     private String upn;
 }
