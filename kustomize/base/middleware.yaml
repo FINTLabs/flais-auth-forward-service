@@ -2,7 +2,6 @@ apiVersion: traefik.containo.us/v1alpha1
 kind: Middleware
 metadata:
   name: auth-forward
-  namespace: viken-no
 spec:
   forwardAuth:
     #address: http://flais-auth-forward-simple-test.flais-auth-forward-simple-test:8080/_oauth

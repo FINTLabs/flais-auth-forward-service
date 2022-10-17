@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-forward
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: auth-forward
+
+          envFrom:
+            - secretRef:
+                name: flais-auth-forward
