@@ -2,9 +2,10 @@ package no.fintlabs;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.oidc.OidcService;
+import no.fintlabs.oidc.UnableToVerifyTokenSignature;
 import no.fintlabs.session.CookieService;
 import no.fintlabs.session.Session;
-import no.fintlabs.session.ConcurrentHashMapSessionRepository;
+import no.fintlabs.session.SessionService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,22 +29,21 @@ import static no.fintlabs.session.CookieService.COOKIE_NAME;
 public class AuthController {
 
     private final OidcService oidcService;
-
-    private final ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository;
-
     private final CookieService cookieService;
+    private final SessionService sessionService;
 
-    public AuthController(OidcService oidcService, ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository, CookieService cookieService) {
+
+    public AuthController(OidcService oidcService, CookieService cookieService, SessionService sessionService) {
         this.oidcService = oidcService;
-        this.concurrentHashMapSessionRepository = concurrentHashMapSessionRepository;
         this.cookieService = cookieService;
+        this.sessionService = sessionService;
     }
 
     @GetMapping
     public Mono<Void> oauth(@CookieValue(value = COOKIE_NAME, required = false) Optional<String> cookieValue,
                             @RequestHeader HttpHeaders headers,
                             ServerHttpResponse response,
-                            ServerHttpRequest request) throws UnsupportedEncodingException {
+                            ServerHttpRequest request) throws UnsupportedEncodingException, UnableToVerifyTokenSignature {
 
         log.debug("Calling {}", request.getPath());
         logForwardedHeaders(headers);
@@ -51,9 +51,7 @@ public class AuthController {
         try {
 
             String verifiedCookieValue = cookieService.verifyCookie(cookieValue);
-            Session session = concurrentHashMapSessionRepository
-                    .getTokenBySessionId(CookieService.getStateFromValue(verifiedCookieValue))
-                    .orElseThrow(MissingAuthentication::new);
+            Session session = sessionService.verifySession(verifiedCookieValue);
             oidcService.verifyToken(session.getToken());
 
             log.debug("Authentication is ok!");
@@ -62,7 +60,8 @@ public class AuthController {
 
         } catch (MissingAuthentication e) {
 
-            URI authorizationUri = oidcService.createAuthorizationUriAndSession(headers);
+            Session session = sessionService.initializeSession();
+            URI authorizationUri = oidcService.getAuthorizationUri(headers, session);
             log.debug("Missing authentication!");
             log.debug("Redirecting to {}", authorizationUri);
             response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
@@ -87,8 +86,8 @@ public class AuthController {
                 .flatMap(token -> {
 
                     response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
-                    response.getHeaders().setLocation(oidcService.createRedirectAfterLoginUri(headers));
-                    response.addCookie(cookieService.createAuthenticationCookie(queryParameters));
+                    response.getHeaders().setLocation(oidcService.getRedirectAfterLoginUri(headers));
+                    response.addCookie(cookieService.createAuthenticationCookie(queryParameters.get("state"), token.getExpiresIn()));
 
                     return response.setComplete();
                 });
@@ -105,13 +104,12 @@ public class AuthController {
     }
 
 
-
     @GetMapping("sessions")
     public Mono<Collection<Session>> getAutenticatedUser(ServerHttpRequest request) {
 
         log.debug("Calling {}", request.getPath());
 
-        return Mono.just(concurrentHashMapSessionRepository.getSessions());
+        return Mono.just(sessionService.getSessions());
     }
 
     @GetMapping("test")

@@ -32,19 +32,24 @@ public class CookieService {
 
         String value = cookieValue.orElseThrow(MissingAuthentication::new);
         if (cookieValueIsValid(value)) {
+            log.debug("Cookie is valid!");
             return value;
         }
+        log.debug("Cookie is not valid!");
         throw new MissingAuthentication();
 
     }
 
-    public ResponseCookie createAuthenticationCookie(Map<String, String> params) {
+    public ResponseCookie createAuthenticationCookie(String state, long expiresIn) {
 
-        return ResponseCookie.from(COOKIE_NAME, createCookieValue(params.get("state")))
+        return ResponseCookie.from(COOKIE_NAME, createCookieValue(state))
                 //.domain(headers.getFirst("x-forwarded-host"))
                 .httpOnly(true)
                 .sameSite("Lax")
-                .maxAge(Duration.ofMinutes(oidcConfiguration.getSessionMaxAgeInMinutes()))
+                .maxAge(oidcConfiguration.getSessionMaxAgeInMinutes() == -1
+                        ? Duration.ofSeconds(expiresIn)
+                        : Duration.ofMinutes(oidcConfiguration.getSessionMaxAgeInMinutes())
+                )
                 .secure(oidcConfiguration.isEnforceHttps())
                 .path("/")
                 .build();

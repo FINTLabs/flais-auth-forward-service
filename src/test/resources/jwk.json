@@ -1,0 +1,19 @@
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "use": "sig",
+      "alg": "RS256",
+      "kid": "419075597339341125269964",
+      "x5c": [
+        "key1",
+        "key2",
+        "key3"
+      ],
+      "x5t": "something_secret",
+      "x5tS256": "lZeoII2G2H6Q-rIUVoU_9-FB1PdNh3OZVGrFBOPUqos",
+      "n": "something_secret",
+      "e": "DSWE"
+    }
+  ]
+}

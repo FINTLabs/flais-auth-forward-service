@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public interface SessionRepository {
 
-    void addSession(String sessionId, String codeVerifier);
+    Session addSession(String sessionId, String codeVerifier);
     void updateSession(String sessionId, Token token);
     void clearSession(String sessionId);
     Optional<Session> getTokenBySessionId(String sessionId);

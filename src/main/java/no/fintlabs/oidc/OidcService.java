@@ -9,8 +9,8 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.MissingAuthentication;
 import no.fintlabs.session.CookieService;
-import no.fintlabs.session.SessionRepository;
-import org.apache.commons.lang3.RandomStringUtils;
+import no.fintlabs.session.Session;
+import no.fintlabs.session.SessionService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,18 +18,16 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Map;
 import java.util.Optional;
 
 import static com.auth0.jwt.algorithms.Algorithm.RSA256;
-import static no.fintlabs.Headers.*;
+import static com.auth0.jwt.algorithms.Algorithm.none;
 
 @Slf4j
 @Service
@@ -40,24 +38,29 @@ public class OidcService {
     private final OidcConfiguration oidcConfiguration;
     private final WebClient webClient;
 
-    private final SessionRepository sessionRepository;
+    private final SessionService sessionService;
     @Getter
     private WellKnownConfiguration wellKnownConfiguration;
 
     private final CookieService cookieService;
 
+    private final OidcRequestFactory oidcRequestFactory;
+
+    @Getter
     private Jwk jwk;
 
-    public OidcService(OidcConfiguration oidcConfiguration, WebClient webClient, SessionRepository sessionRepository, CookieService cookieService) {
+    public OidcService(OidcConfiguration oidcConfiguration, WebClient webClient, SessionService sessionService, CookieService cookieService, OidcRequestFactory oidcRequestFactory) {
         this.oidcConfiguration = oidcConfiguration;
         this.webClient = webClient;
-        this.sessionRepository = sessionRepository;
+        this.sessionService = sessionService;
         this.cookieService = cookieService;
+        this.oidcRequestFactory = oidcRequestFactory;
     }
 
     @PostConstruct
     public void init() {
-        getWellKnowConfiguration();
+        fetchWellKnowConfiguration();
+        fetchJwks();
     }
 
     public Mono<Token> fetchToken(Map<String, String> params, HttpHeaders headers) {
@@ -65,69 +68,76 @@ public class OidcService {
         return webClient.post()
                 .uri(getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .body(BodyInserters
-                        .fromFormData("grant_type", "authorization_code")
-                        .with("client_id", oidcConfiguration.getClientId())
-                        .with("client_secret", oidcConfiguration.getClientSecret())
-                        .with("code", params.get("code"))
-                        .with("redirect_uri", createCallbackUri(headers))
+                .body(
+                        BodyInserters
+                                .fromFormData(
+                                        OidcRequestFactory.createTokenRequestBody(
+                                                oidcConfiguration.getClientId(),
+                                                oidcConfiguration.getClientSecret(),
+                                                params.get("code"),
+                                                oidcRequestFactory.createCallbackUri(headers)
+                                        ))
                 )
                 .retrieve()
                 .bodyToMono(Token.class)
                 .map(token -> {
                     log.debug("Got token: {}", token.toString());
-                    sessionRepository.updateSession(params.get("state"), token);
+                    sessionService.updateSession(params.get("state"), token);
                     return token;
                 });
     }
 
-    public void verifyToken(Token token) throws MissingAuthentication {
+    public void verifyToken(Token token) throws MissingAuthentication, UnableToVerifyTokenSignature {
 
         try {
             DecodedJWT jwt = JWT.decode(token.getAccessToken());
-            Key key = jwk.getKeyById(jwt.getKeyId()).orElseThrow();
-            Algorithm algorithm = RSA256((RSAPublicKey) key.getPublicKey(), null);
+            Algorithm algorithm = none();
+
+            if (oidcConfiguration.isVerifyTokenSignature()) {
+                Key key = jwk.getKeyById(jwt.getKeyId()).orElseThrow();
+                algorithm = RSA256((RSAPublicKey) key.getPublicKey(), null);
+            }
+
             algorithm.verify(jwt);
+            log.debug("Token is valid!");
         } catch (SignatureVerificationException | InvalidPublicKeyException e) {
+            log.debug("Token is valid!");
             log.warn("{}", e.toString());
-            throw new MissingAuthentication();
+            throw new UnableToVerifyTokenSignature();
         }
     }
 
-    private void getWellKnowConfiguration() {
+
+    public void fetchWellKnowConfiguration() {
         log.info("Retrieving well know OpenId configuration...");
-        webClient
+        wellKnownConfiguration = webClient
                 .get()
                 .uri(oidcConfiguration.getIssuerUri().pathSegment(WELL_KNOWN_OPENID_CONFIGURATION_PATH).build().toUri())
                 .retrieve()
                 .bodyToMono(WellKnownConfiguration.class)
-                .subscribe(configuration -> {
-                    log.debug("Got well know OpenId configuration:");
-                    log.debug(configuration.toString());
-                    wellKnownConfiguration = configuration;
-                    getJwks();
-                });
+                .block();
+
+        log.debug("Got well know OpenId configuration:");
+        log.debug(wellKnownConfiguration.toString());
     }
 
-    private void getJwks() {
+    public void fetchJwks() {
         log.info("Retrieving JWKs...");
-        webClient.get()
+        jwk = webClient.get()
                 .uri(wellKnownConfiguration.getJwksUri())
                 .retrieve()
                 .bodyToMono(Jwk.class)
-                .subscribe(jwks -> {
-                    log.debug("Got JWKs:");
-                    log.debug(jwks.toString());
-                    jwk = jwks;
-                });
+                .block();
+        log.debug("Got JWKs:");
+        log.debug(jwk.toString());
     }
 
     public Mono<Void> logout(ServerHttpResponse response, Optional<String> cookieValue) {
 
         cookieValue.ifPresent(s -> {
-            log.debug("{} sessions in session repository before logout", sessionRepository.getSessions().size());
-            sessionRepository.clearSession(s);
-            log.debug("{} sessions in session repository after logout", sessionRepository.getSessions().size());
+            log.debug("{} sessions in session repository before logout", sessionService.sessionCount());
+            sessionService.clearSession(s);
+            log.debug("{} sessions in session repository after logout", sessionService.sessionCount());
 
             response.addCookie(cookieService.createLogoutCookie(s));
 
@@ -138,64 +148,16 @@ public class OidcService {
         return response.setComplete();
     }
 
-    public URI createAuthorizationUriAndSession(HttpHeaders headers) throws UnsupportedEncodingException {
-        String state = RandomStringUtils.randomAlphanumeric(32);
-        String codeVerifier = PkceUtil.generateCodeVerifier();
+    public URI getAuthorizationUri(HttpHeaders headers, Session session) {
 
-        sessionRepository.addSession(state, codeVerifier);
-
-        return UriComponentsBuilder.fromUriString(wellKnownConfiguration.getAuthorizationEndpoint())
-                .queryParam("response_type", "code")
-                .queryParam("redirect_uri", createCallbackUri(headers))
-                .queryParam("state", state)
-                .queryParam("nonce", RandomStringUtils.randomAlphanumeric(32))
-                //.queryParam("code_challenge", PkceUtil.generateCodeChallange(PkceUtil.generateCodeVerifier()))
-                //        .queryParam("code_challenge_method", "S256")
-                .queryParam("client_id", oidcConfiguration.getClientId())
-                .queryParam("scope", String.join("+", oidcConfiguration.getScopes()))
-                .build()
-                .toUri();
+        return oidcRequestFactory
+                .createAuthorizationUri(wellKnownConfiguration.getAuthorizationEndpoint(), headers, session);
 
     }
 
-    public String createCallbackUri(HttpHeaders headers) {
-        return UriComponentsBuilder.newInstance()
-                .scheme(getProtocol(headers))
-                .port(getPort(headers))
-                .host(headers.getFirst(X_FORWARDED_HOST))
-                .path("/_oauth/callback")
-                .build()
-                .toUriString();
+    public URI getRedirectAfterLoginUri(HttpHeaders headers) {
+        return oidcRequestFactory.createRedirectAfterLoginUri(headers);
     }
 
-    public URI createRedirectAfterLoginUri(HttpHeaders headers) {
-        URI redirectUri = UriComponentsBuilder.newInstance()
-                .scheme(getProtocol(headers))
-                .port(getPort(headers))
-                .host(headers.getFirst(X_FORWARDED_HOST))
-                .path("/")
-                .build()
-                .toUri();
-
-        log.debug("Redirecting to {}", redirectUri);
-
-        return redirectUri;
-    }
-
-    public String getPort(HttpHeaders headers) {
-        if (oidcConfiguration.isEnforceHttps()) {
-            return null;
-        }
-
-        if (headers.containsKey(X_FORWARDED_PORT)) {
-            return headers.getFirst(X_FORWARDED_PORT).equals("80") ? null : headers.getFirst(X_FORWARDED_PORT);
-        }
-
-        return null;
-    }
-
-    public String getProtocol(HttpHeaders headers) {
-        return oidcConfiguration.isEnforceHttps() ? "https" : headers.getFirst(X_FORWARDED_PROTO);
-    }
 
 }
