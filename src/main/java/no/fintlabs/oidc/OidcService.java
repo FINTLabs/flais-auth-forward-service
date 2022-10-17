@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.auth0.jwt.algorithms.Algorithm.RSA256;
+import static com.auth0.jwt.algorithms.Algorithm.none;
 
 @Slf4j
 @Service
@@ -86,18 +87,23 @@ public class OidcService {
                 });
     }
 
-    public void verifyToken(Token token) throws MissingAuthentication {
+    public void verifyToken(Token token) throws MissingAuthentication, UnableToVerifyTokenSignature {
 
         try {
             DecodedJWT jwt = JWT.decode(token.getAccessToken());
-            Key key = jwk.getKeyById(jwt.getKeyId()).orElseThrow();
-            Algorithm algorithm = RSA256((RSAPublicKey) key.getPublicKey(), null);
+            Algorithm algorithm = none();
+
+            if (oidcConfiguration.isVerifyTokenSignature()) {
+                Key key = jwk.getKeyById(jwt.getKeyId()).orElseThrow();
+                algorithm = RSA256((RSAPublicKey) key.getPublicKey(), null);
+            }
+
             algorithm.verify(jwt);
             log.debug("Token is valid!");
         } catch (SignatureVerificationException | InvalidPublicKeyException e) {
             log.debug("Token is valid!");
             log.warn("{}", e.toString());
-            throw new MissingAuthentication();
+            throw new UnableToVerifyTokenSignature();
         }
     }
 
@@ -147,6 +153,10 @@ public class OidcService {
         return oidcRequestFactory
                 .createAuthorizationUri(wellKnownConfiguration.getAuthorizationEndpoint(), headers, session);
 
+    }
+
+    public URI getRedirectAfterLoginUri(HttpHeaders headers) {
+        return oidcRequestFactory.createRedirectAfterLoginUri(headers);
     }
 
 

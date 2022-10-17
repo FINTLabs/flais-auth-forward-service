@@ -1,7 +1,7 @@
 apiVersion: fintlabs.no/v1alpha1
 kind: NamOAuthClientApplicationResource
 metadata:
-  name: flais-auth-forward-simple-test
+  name: auth-forward
 spec:
   redirectUris:
-    - https://forward-auth-test.fintlabs.no/_oauth/callback
+    - https://viken-no-skjema.vigoiks.no/_oauth/callback

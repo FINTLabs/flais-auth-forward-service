@@ -40,9 +40,9 @@ public class CookieService {
 
     }
 
-    public ResponseCookie createAuthenticationCookie(Map<String, String> params, long expiresIn) {
+    public ResponseCookie createAuthenticationCookie(String state, long expiresIn) {
 
-        return ResponseCookie.from(COOKIE_NAME, createCookieValue(params.get("state")))
+        return ResponseCookie.from(COOKIE_NAME, createCookieValue(state))
                 //.domain(headers.getFirst("x-forwarded-host"))
                 .httpOnly(true)
                 .sameSite("Lax")

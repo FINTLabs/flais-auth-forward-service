@@ -1,8 +1,8 @@
 package no.fintlabs;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.oidc.OidcRequestFactory;
 import no.fintlabs.oidc.OidcService;
+import no.fintlabs.oidc.UnableToVerifyTokenSignature;
 import no.fintlabs.session.CookieService;
 import no.fintlabs.session.Session;
 import no.fintlabs.session.SessionService;
@@ -29,20 +29,13 @@ import static no.fintlabs.session.CookieService.COOKIE_NAME;
 public class AuthController {
 
     private final OidcService oidcService;
-    private final OidcRequestFactory oidcRequestFactory;
-
-    //private final ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository;
-
     private final CookieService cookieService;
-
     private final SessionService sessionService;
 
 
-    public AuthController(OidcService oidcService, /*ConcurrentHashMapSessionRepository concurrentHashMapSessionRepository,*/ CookieService cookieService, OidcRequestFactory oidcRequestFactory, SessionService sessionService) {
+    public AuthController(OidcService oidcService, CookieService cookieService, SessionService sessionService) {
         this.oidcService = oidcService;
-        //this.concurrentHashMapSessionRepository = concurrentHashMapSessionRepository;
         this.cookieService = cookieService;
-        this.oidcRequestFactory = oidcRequestFactory;
         this.sessionService = sessionService;
     }
 
@@ -50,7 +43,7 @@ public class AuthController {
     public Mono<Void> oauth(@CookieValue(value = COOKIE_NAME, required = false) Optional<String> cookieValue,
                             @RequestHeader HttpHeaders headers,
                             ServerHttpResponse response,
-                            ServerHttpRequest request) throws UnsupportedEncodingException {
+                            ServerHttpRequest request) throws UnsupportedEncodingException, UnableToVerifyTokenSignature {
 
         log.debug("Calling {}", request.getPath());
         logForwardedHeaders(headers);
@@ -93,8 +86,8 @@ public class AuthController {
                 .flatMap(token -> {
 
                     response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
-                    response.getHeaders().setLocation(oidcRequestFactory.createRedirectAfterLoginUri(headers));
-                    response.addCookie(cookieService.createAuthenticationCookie(queryParameters, token.getExpiresIn()));
+                    response.getHeaders().setLocation(oidcService.getRedirectAfterLoginUri(headers));
+                    response.addCookie(cookieService.createAuthenticationCookie(queryParameters.get("state"), token.getExpiresIn()));
 
                     return response.setComplete();
                 });
@@ -109,7 +102,6 @@ public class AuthController {
 
         return oidcService.logout(response, cookieValue);
     }
-
 
 
     @GetMapping("sessions")

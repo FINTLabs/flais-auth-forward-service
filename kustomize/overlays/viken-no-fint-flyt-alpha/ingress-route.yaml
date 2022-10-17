@@ -1,0 +1,13 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: auth-forward
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`viken-no-skjema.vigoiks.no`) && PathPrefix(`/_oauth`)
+      kind: Rule
+      services:
+        - name: fint-flyt-auth-forward
+          port: 8080

@@ -22,4 +22,5 @@ public class OidcConfiguration {
     private URI redirectAfterLogoutUri = URI.create("/_oauth/logged-out");
     private URI redirectAfterLoginUri = URI.create("/");
     private String logoutMessage;
+    private boolean verifyTokenSignature = true;
 }
