@@ -6,7 +6,7 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`viken-no-skjema.vigoiks.no`) && PathPrefix(`/_oauth`)
+    - match: Host(`flyt.vigoiks.no`) && PathPrefix(`/alpha/_oauth`)
       kind: Rule
       services:
         - name: fint-flyt-auth-forward

@@ -4,4 +4,4 @@ metadata:
   name: auth-forward
 spec:
   redirectUris:
-    - https://viken-no-skjema.vigoiks.no/_oauth/callback
+    - https://flyt.vigoiks.no/alpha/_oauth/callback
