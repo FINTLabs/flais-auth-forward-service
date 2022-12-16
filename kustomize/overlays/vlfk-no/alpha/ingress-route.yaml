@@ -6,7 +6,7 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`flyt.vigoiks.no`) && PathPrefix(`/alpha/_oauth`)
+    - match: Host(`flyt.vigoiks.no`) && PathPrefix(`/alpha/vlfk-no/_oauth`)
       kind: Rule
       services:
         - name: fint-flyt-auth-forward
