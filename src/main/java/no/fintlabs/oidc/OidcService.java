@@ -143,7 +143,7 @@ public class OidcService {
 
         });
         response.setStatusCode(HttpStatus.FOUND);
-        response.getHeaders().setLocation(oidcConfiguration.getRedirectAfterLogoutUri());
+        response.getHeaders().setLocation(oidcRequestFactory.createRedirectAfterLogoutUri());
 
         return response.setComplete();
     }

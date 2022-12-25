@@ -3,6 +3,7 @@ package no.fintlabs.oidc;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.session.Session;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -12,11 +13,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 
 import static no.fintlabs.Headers.*;
-import static no.fintlabs.Headers.X_FORWARDED_HOST;
 
 @Slf4j
 @Component
 public class OidcRequestFactory {
+
+    @Value("${spring.webflux.base-path:/}")
+    private String basePath;
 
     private final OidcConfiguration oidcConfiguration;
 
@@ -56,6 +59,7 @@ public class OidcRequestFactory {
                 .scheme(getProtocol(headers))
                 .port(getPort(headers))
                 .host(headers.getFirst(X_FORWARDED_HOST))
+                .path(basePath)
                 .path("/_oauth/callback")
                 .build()
                 .toUriString();
@@ -66,6 +70,7 @@ public class OidcRequestFactory {
                 .scheme(getProtocol(headers))
                 .port(getPort(headers))
                 .host(headers.getFirst(X_FORWARDED_HOST))
+                .path(basePath)
                 .path(oidcConfiguration.getRedirectAfterLoginUri().toString())
                 .build()
                 .toUri();
@@ -73,6 +78,19 @@ public class OidcRequestFactory {
         log.debug("Redirecting to {}", redirectUri);
 
         return redirectUri;
+    }
+
+    public URI createRedirectAfterLogoutUri() {
+
+
+        if (oidcConfiguration.getRedirectAfterLogoutUri().isAbsolute()) {
+            return oidcConfiguration.getRedirectAfterLogoutUri();
+        }
+        return UriComponentsBuilder.newInstance()
+                .path(basePath)
+                .path(oidcConfiguration.getRedirectAfterLogoutUri().toString())
+                .build()
+                .toUri();
     }
 
     public String getPort(HttpHeaders headers) {
