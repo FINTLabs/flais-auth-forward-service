@@ -8,14 +8,14 @@ patchesStrategicMerge:
   - ingress-route.yaml
   - deployment.yaml
 namePrefix: fint-flyt-
-namespace: viken-test
+namespace: viken-no
 commonLabels:
   app.kubernetes.io/name: flais-auth-forward
   app.kubernetes.io/instance: fint-flyt-auth-forward
   app.kubernetes.io/version: "latest"
   app.kubernetes.io/managed-by: "manually"
   app.kubernetes.io/component: traefik-forward-auth-service
-  app.kubernetes.io/part-of: fint-flyt-viken-test
+  app.kubernetes.io/part-of: fint-flyt-viken-no
   fintlabs.no/team: flyt
 
 

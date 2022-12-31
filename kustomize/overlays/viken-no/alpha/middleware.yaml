@@ -4,4 +4,4 @@ metadata:
   name: auth-forward
 spec:
   forwardAuth:
-    address: http://fint-flyt-auth-forward.viken-test:8080/alpha/_oauth
+    address: http://fint-flyt-auth-forward.viken-no:8080/alpha/viken-no/_oauth
