@@ -6,19 +6,22 @@ import no.fintlabs.oidc.OidcConfiguration;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
 @Service
 public class CookieService {
     public static final String COOKIE_NAME = "user_session";
+
+    @Value("${spring.webflux.base-path:/}")
+    private String basePath;
 
     private final OidcConfiguration oidcConfiguration;
 
@@ -51,7 +54,7 @@ public class CookieService {
                         : Duration.ofMinutes(oidcConfiguration.getSessionMaxAgeInMinutes())
                 )
                 .secure(oidcConfiguration.isEnforceHttps())
-                .path("/")
+                .path(basePath)
                 .build();
     }
 
