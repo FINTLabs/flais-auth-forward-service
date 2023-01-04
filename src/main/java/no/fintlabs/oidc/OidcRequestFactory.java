@@ -40,6 +40,18 @@ public class OidcRequestFactory {
         return bodyMap;
     }
 
+    public static MultiValueMap<String, String> createRefreshTokenRequestBody(String clientId, String clientSecret, String refreshToken) {
+
+        final MultiValueMap<String, String> bodyMap = new LinkedMultiValueMap<>();
+
+        bodyMap.add("grant_type", "refresh_token");
+        bodyMap.add("client_id", clientId);
+        bodyMap.add("client_secret", clientSecret);
+        bodyMap.add("refresh_token", refreshToken);
+
+        return bodyMap;
+    }
+
     public URI createAuthorizationUri(String authorizationEndpoint, HttpHeaders headers, Session session) {
         return UriComponentsBuilder.fromUriString(authorizationEndpoint)
                 .queryParam("response_type", "code")

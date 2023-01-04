@@ -15,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -23,6 +24,8 @@ import reactor.core.publisher.Mono;
 import javax.annotation.PostConstruct;
 import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
@@ -81,10 +84,40 @@ public class OidcService {
                 .retrieve()
                 .bodyToMono(Token.class)
                 .map(token -> {
-                    log.debug("Got token: {}", token.toString());
+                    logToken(token);
                     sessionService.updateSession(params.get("state"), token);
                     return token;
                 });
+    }
+
+    private void logToken(Token token) {
+        log.debug("Got token: ...{}", token.getAccessToken()
+                .substring(token.getAccessToken().length() - 15));
+    }
+
+    public void refreshToken(String state, Token token) {
+
+        log.debug("Refreshing token...");
+        webClient.post()
+                .uri(getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api")
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .body(
+                        BodyInserters
+                                .fromFormData(
+                                        OidcRequestFactory.createRefreshTokenRequestBody(
+                                                oidcConfiguration.getClientId(),
+                                                oidcConfiguration.getClientSecret(),
+                                                token.getRefreshToken()
+                                        ))
+                )
+                .retrieve()
+                .bodyToMono(Token.class)
+                .subscribe(tokenResponse -> {
+                    logToken(tokenResponse);
+                    tokenResponse.setRefreshToken(token.getRefreshToken());
+                    sessionService.updateSession(state, tokenResponse);
+                });
+
     }
 
     public void verifyToken(Token token) throws MissingAuthentication, UnableToVerifyTokenSignature {
@@ -101,7 +134,7 @@ public class OidcService {
             algorithm.verify(jwt);
             log.debug("Token is valid!");
         } catch (SignatureVerificationException | InvalidPublicKeyException e) {
-            log.debug("Token is valid!");
+            log.debug("Token is not valid!");
             log.warn("{}", e.toString());
             throw new UnableToVerifyTokenSignature();
         }
@@ -159,5 +192,22 @@ public class OidcService {
         return oidcRequestFactory.createRedirectAfterLoginUri(headers);
     }
 
+    @Scheduled(cron = "*/10 * * * * *")
+    public void refreshToken() {
+        log.debug("Checking {} session for expiring tokens", sessionService.getSessions().size());
+        sessionService.getSessions().stream()
+                .filter(session -> session.getUpn() != null)
+                .forEach(session -> {
+                    log.debug("Refreshed token for upn {}", session.getUpn());
+                    Duration between = Duration.between(LocalDateTime.now(), session.getExpires());
+                    log.debug("Token is expiring in {} seconds", between.toSeconds());
+                    if (between.getSeconds() <= 60) {
+                        log.debug("Token has less than 60 seconds left. Refreshing token.");
+                        //refreshToken(session.getState(), session.getToken());
+                    } else {
+                        log.debug("No need to refresh token!");
+                    }
+                });
+    }
 
 }
