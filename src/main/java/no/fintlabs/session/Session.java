@@ -6,7 +6,6 @@ import lombok.Data;
 import no.fintlabs.oidc.Token;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
 @Data
 @Builder
@@ -20,6 +19,7 @@ public class Session {
     @JsonIgnore
     private String state;
 
+    private LocalDateTime sessionStart;
     private LocalDateTime expires;
     private String upn;
 }

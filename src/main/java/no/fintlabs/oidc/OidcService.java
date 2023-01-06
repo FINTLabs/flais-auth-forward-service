@@ -195,10 +195,11 @@ public class OidcService {
     @Scheduled(cron = "*/10 * * * * *")
     public void refreshToken() {
         log.debug("Checking {} session for expiring tokens", sessionService.getSessions().size());
-        sessionService.getSessions().stream()
+        sessionService.getSessions()
+                .stream()
                 .filter(session -> session.getUpn() != null)
                 .forEach(session -> {
-                    log.debug("Refreshed token for upn {}", session.getUpn());
+                    log.debug("Refreshed token for UPN {}", session.getUpn());
                     Duration between = Duration.between(LocalDateTime.now(), session.getExpires());
                     log.debug("Token is expiring in {} seconds", between.toSeconds());
                     if (between.getSeconds() <= 60) {
