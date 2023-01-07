@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.ApplicationConfiguration;
-import no.fintlabs.MissingAuthentication;
+import no.fintlabs.controller.MissingAuthentication;
 import no.fintlabs.session.CookieService;
 import no.fintlabs.session.Session;
 import no.fintlabs.session.SessionService;

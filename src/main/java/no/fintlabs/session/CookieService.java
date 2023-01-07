@@ -1,7 +1,7 @@
 package no.fintlabs.session;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.MissingAuthentication;
+import no.fintlabs.controller.MissingAuthentication;
 import no.fintlabs.ApplicationConfiguration;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;

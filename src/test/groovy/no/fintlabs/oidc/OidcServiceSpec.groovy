@@ -1,7 +1,7 @@
 package no.fintlabs.oidc
 
 import no.fintlabs.ApplicationConfiguration
-import no.fintlabs.Headers
+import no.fintlabs.controller.Headers
 import no.fintlabs.session.ConcurrentHashMapSessionRepository
 import no.fintlabs.session.CookieService
 import no.fintlabs.session.SessionRepository

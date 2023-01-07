@@ -1,4 +1,4 @@
-package no.fintlabs;
+package no.fintlabs.controller;
 
 public class MissingAuthentication extends Exception {
 

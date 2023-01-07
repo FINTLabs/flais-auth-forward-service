@@ -2,6 +2,7 @@ package no.fintlabs
 
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import no.fintlabs.controller.AuthController
 import no.fintlabs.oidc.*
 import no.fintlabs.session.ConcurrentHashMapSessionRepository
 import no.fintlabs.session.CookieService

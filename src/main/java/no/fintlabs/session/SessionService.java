@@ -2,7 +2,7 @@ package no.fintlabs.session;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.ApplicationConfiguration;
-import no.fintlabs.MissingAuthentication;
+import no.fintlabs.controller.MissingAuthentication;
 import no.fintlabs.oidc.PkceUtil;
 import no.fintlabs.oidc.Token;
 import org.apache.commons.lang3.RandomStringUtils;

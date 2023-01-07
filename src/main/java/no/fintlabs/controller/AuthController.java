@@ -1,4 +1,4 @@
-package no.fintlabs;
+package no.fintlabs.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.oidc.OidcService;
