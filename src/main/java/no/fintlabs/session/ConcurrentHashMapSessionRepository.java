@@ -18,12 +18,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ConcurrentHashMapSessionRepository implements SessionRepository {
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
-    public Session addSession(String sessionId, String codeVerifier) {
+//    public Session addSession(String sessionId, String codeVerifier) {
+//        return addSession(sessionId, codeVerifier, LocalDateTime.now());
+//    }
+    public Session addSession(String sessionId, String codeVerifier, LocalDateTime sessionStart) {
 
         Session session = Session.builder()
                 .codeVerifier(codeVerifier)
-                .state(sessionId)
-                .sessionStart(LocalDateTime.now())
+                .sessionId(sessionId)
+                .sessionStartAt(sessionStart)
                 .build();
 
         sessions.put(sessionId, session);
@@ -37,14 +40,18 @@ public class ConcurrentHashMapSessionRepository implements SessionRepository {
         Session session = sessions.get(sessionId);
         session.setToken(token);
         session.setUpn(jwt.getClaims().get("email").asString());
-        session.setExpires(dateToLocalDateTime(jwt.getExpiresAt()));
+        session.setTokenExpiresAt(dateToLocalDateTime(jwt.getExpiresAt()));
 
         sessions.put(sessionId, session);
     }
 
-    public void clearSession(String sessionId) {
+    public void clearSessionByCookieValue(String cookieValue) {
+        sessions.remove(CookieService.getStateFromValue(cookieValue));
+    }
 
-        sessions.remove(CookieService.getStateFromValue(sessionId));
+
+    public void clearSessionBySessionId(String sessionId) {
+        sessions.remove(sessionId);
     }
 
     public Optional<Session> getTokenBySessionId(String sessionId) {
@@ -55,10 +62,4 @@ public class ConcurrentHashMapSessionRepository implements SessionRepository {
     public Collection<Session> getSessions() {
         return sessions.values();
     }
-
-//    private LocalDateTime dateToLocalDateTime(Date dateToConvert) {
-//        return dateToConvert.toInstant()
-//                .atZone(ZoneId.systemDefault())
-//                .toLocalDateTime();
-//    }
 }

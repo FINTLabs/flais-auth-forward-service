@@ -1,5 +1,6 @@
 package no.fintlabs.oidc
 
+import no.fintlabs.ApplicationConfiguration
 import no.fintlabs.Headers
 import no.fintlabs.session.ConcurrentHashMapSessionRepository
 import no.fintlabs.session.CookieService
@@ -23,7 +24,7 @@ class OidcServiceSpec extends Specification {
 
     MockWebServer mockWebServer
     OidcService oidcService
-    OidcConfiguration oidcConfiguration
+    ApplicationConfiguration configuration
     SessionRepository sessionRepository
     CookieService cookieService
     OidcRequestFactory oidcRequestFactory
@@ -33,13 +34,13 @@ class OidcServiceSpec extends Specification {
         mockWebServer = new MockWebServer()
         mockWebServer.start(8090)
 
-        oidcConfiguration = new OidcConfiguration()
-        oidcConfiguration.setIssuerUri(UriComponentsBuilder.fromUri(URI.create(mockWebServer.url("/").toString())))
+        configuration = new ApplicationConfiguration()
+        configuration.setIssuerUri(UriComponentsBuilder.fromUri(URI.create(mockWebServer.url("/").toString())))
         sessionRepository = new ConcurrentHashMapSessionRepository()
-        cookieService = new CookieService(oidcConfiguration)
-        oidcRequestFactory = new OidcRequestFactory(oidcConfiguration)
-        sessionService = new SessionService(sessionRepository)
-        oidcService = new OidcService(oidcConfiguration, WebClient.create(), sessionService, cookieService, oidcRequestFactory)
+        cookieService = new CookieService(configuration)
+        oidcRequestFactory = new OidcRequestFactory(configuration)
+        sessionService = new SessionService(configuration, sessionRepository)
+        oidcService = new OidcService(configuration, WebClient.create(), sessionService, cookieService, oidcRequestFactory)
 
         def dispatcher = new Dispatcher() {
             @Override
@@ -61,7 +62,7 @@ class OidcServiceSpec extends Specification {
                                 .setBody(new ClassPathResource('token.json').getFile().text)
 
                 }
-                return new MockResponse().setResponseCode(404);
+                return new MockResponse().setResponseCode(404)
             }
         }
 
@@ -122,7 +123,7 @@ class OidcServiceSpec extends Specification {
         def sessionCount = sessionService.sessionCount()
 
         when:
-        oidcService.logout(new MockServerHttpResponse(), Optional.of("signature." + session.getState()))
+        oidcService.logout(new MockServerHttpResponse(), Optional.of("signature." + session.getSessionId()))
 
         then:
         (sessionCount - 1) == sessionService.sessionCount()

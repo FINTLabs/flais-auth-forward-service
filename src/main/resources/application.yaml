@@ -1,8 +1,6 @@
 fint:
   sso:
     logout-message: Du er logget ut.
-    # This should be set to the refresh token timeout value of the IDP
-    session-max-age-in-minutes: 1440
 spring:
   thymeleaf:
     prefix: file:src/main/resources/templates/
