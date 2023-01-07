@@ -105,12 +105,24 @@ public class AuthController {
 
 
     @GetMapping("sessions")
-    public Mono<Collection<Session>> getAutenticatedUser(ServerHttpRequest request) {
+    public Mono<Collection<Session>> getUserSessions(ServerHttpRequest request) {
 
         log.debug("Calling {}", request.getPath());
 
         return Mono.just(sessionService.getSessions());
     }
+
+    @GetMapping("sessions/me")
+    public Mono<Session> getUserSession(@CookieValue(value = COOKIE_NAME, required = false) Optional<String> cookieValue, ServerHttpRequest request) throws MissingSession, MissingAuthentication {
+
+        log.debug("Calling {}", request.getPath());
+        String verifiedCookieValue = cookieService.verifyCookie(cookieValue);
+
+        Session session = sessionService.getSessionByCookieValue(verifiedCookieValue).orElseThrow(MissingSession::new);
+        return Mono.just(session);
+    }
+
+
 
     @GetMapping("test")
     public Mono<String> test(ServerHttpRequest request) {
@@ -134,5 +146,10 @@ public class AuthController {
         log.debug(e.toString());
         e.printStackTrace();
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
+    @ExceptionHandler(MissingSession.class)
+    public ResponseEntity<Void> onMissingSession(MissingSession e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 }

@@ -18,9 +18,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ConcurrentHashMapSessionRepository implements SessionRepository {
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
-//    public Session addSession(String sessionId, String codeVerifier) {
-//        return addSession(sessionId, codeVerifier, LocalDateTime.now());
-//    }
     public Session addSession(String sessionId, String codeVerifier, LocalDateTime sessionStart) {
 
         Session session = Session.builder()
@@ -46,7 +43,7 @@ public class ConcurrentHashMapSessionRepository implements SessionRepository {
     }
 
     public void clearSessionByCookieValue(String cookieValue) {
-        sessions.remove(CookieService.getStateFromValue(cookieValue));
+        sessions.remove(CookieService.getSessionIdFromValue(cookieValue));
     }
 
 
