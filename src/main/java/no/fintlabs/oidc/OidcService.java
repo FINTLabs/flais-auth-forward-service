@@ -207,7 +207,7 @@ public class OidcService {
                 .filter(session -> session.getUpn() != null)
                 .forEach(session -> {
                     log.debug("Refreshed token for UPN {}", session.getUpn());
-                    Duration between = Duration.between(LocalDateTime.now(), session.getExpires());
+                    Duration between = Duration.between(LocalDateTime.now(), session.getTokenExpiresAt());
                     log.debug("Token is expiring in {} seconds", between.toSeconds());
                     if (between.getSeconds() <= 60) {
                         log.debug("Token has less than 60 seconds left. Refreshing token.");

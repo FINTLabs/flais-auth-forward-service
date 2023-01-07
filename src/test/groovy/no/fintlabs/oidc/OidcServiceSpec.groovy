@@ -62,7 +62,7 @@ class OidcServiceSpec extends Specification {
                                 .setBody(new ClassPathResource('token.json').getFile().text)
 
                 }
-                return new MockResponse().setResponseCode(404);
+                return new MockResponse().setResponseCode(404)
             }
         }
 
@@ -123,7 +123,7 @@ class OidcServiceSpec extends Specification {
         def sessionCount = sessionService.sessionCount()
 
         when:
-        oidcService.logout(new MockServerHttpResponse(), Optional.of("signature." + session.getState()))
+        oidcService.logout(new MockServerHttpResponse(), Optional.of("signature." + session.getSessionId()))
 
         then:
         (sessionCount - 1) == sessionService.sessionCount()

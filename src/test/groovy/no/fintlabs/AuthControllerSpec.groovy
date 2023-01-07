@@ -68,8 +68,8 @@ class AuthControllerSpec extends Specification {
 
         given:
         def session = sessionService.initializeSession()
-        def cookie = cookieService.createAuthenticationCookie(session.getState(), 3600)
-        sessionService.updateSession(session.getState(),
+        def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), 3600)
+        sessionService.updateSession(session.getSessionId(),
                 TokenFactory.createTokenWithoutSignature()
         )
 
@@ -89,9 +89,9 @@ class AuthControllerSpec extends Specification {
 
         given:
         def session = sessionService.initializeSession()
-        def cookie = cookieService.createAuthenticationCookie(session.getState(), 3600)
+        def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), 3600)
         sessionService.updateSession(
-                session.getState(),
+                session.getSessionId(),
                 TokenFactory.createTokenWithoutSignature()
         )
 
@@ -110,9 +110,9 @@ class AuthControllerSpec extends Specification {
 
         given:
         def session = sessionService.initializeSession()
-        def cookie = cookieService.createAuthenticationCookie(session.getState(), 3600)
+        def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), 3600)
         sessionService.updateSession(
-                session.getState(),
+                session.getSessionId(),
                 TokenFactory.createTokenWithoutSignature()
         )
 
@@ -131,9 +131,9 @@ class AuthControllerSpec extends Specification {
 
         given:
         def session = sessionService.initializeSession()
-        def cookie = cookieService.createAuthenticationCookie(session.getState(), 3600)
+        def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), 3600)
         sessionService.updateSession(
-                session.getState(),
+                session.getSessionId(),
                 TokenFactory.createTokenWithSignature()
         )
 
@@ -152,9 +152,9 @@ class AuthControllerSpec extends Specification {
     def "When logging out the session should be removed"() {
         given:
         def session = sessionService.initializeSession()
-        def cookie = cookieService.createAuthenticationCookie(session.getState(), configuration.getSessionMaxAgeInMinutes())
+        def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), configuration.getSessionMaxAgeInMinutes())
         sessionService.updateSession(
-                session.getState(),
+                session.getSessionId(),
                 TokenFactory.createTokenWithoutSignature()
         )
 

@@ -71,13 +71,13 @@ public class SessionService {
                 .getSessions()
                 .stream()
                 .filter(session -> {
-                    Duration duration = Duration.between(LocalDateTime.now(), session.getSessionStart().plusMinutes(configuration.getSessionMaxAgeInMinutes()));
+                    Duration duration = Duration.between(LocalDateTime.now(), session.getSessionStartAt().plusMinutes(configuration.getSessionMaxAgeInMinutes()));
                     return duration.toMinutes() <= 60;
                 })
                 .toList();
 
         log.debug("{} old sessions to cleanup", oldSessions.size());
 
-        oldSessions.forEach(session -> clearSessionBySessionId(session.getState()));
+        oldSessions.forEach(session -> clearSessionBySessionId(session.getSessionId()));
     }
 }

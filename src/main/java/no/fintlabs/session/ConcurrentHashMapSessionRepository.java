@@ -25,8 +25,8 @@ public class ConcurrentHashMapSessionRepository implements SessionRepository {
 
         Session session = Session.builder()
                 .codeVerifier(codeVerifier)
-                .state(sessionId)
-                .sessionStart(sessionStart)
+                .sessionId(sessionId)
+                .sessionStartAt(sessionStart)
                 .build();
 
         sessions.put(sessionId, session);
@@ -40,7 +40,7 @@ public class ConcurrentHashMapSessionRepository implements SessionRepository {
         Session session = sessions.get(sessionId);
         session.setToken(token);
         session.setUpn(jwt.getClaims().get("email").asString());
-        session.setExpires(dateToLocalDateTime(jwt.getExpiresAt()));
+        session.setTokenExpiresAt(dateToLocalDateTime(jwt.getExpiresAt()));
 
         sessions.put(sessionId, session);
     }

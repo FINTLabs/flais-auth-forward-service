@@ -16,9 +16,9 @@ public class Session {
     @JsonIgnore
     private String codeVerifier;
 
-    private String state;
+    private String sessionId;
 
-    private LocalDateTime sessionStart;
-    private LocalDateTime expires;
+    private LocalDateTime sessionStartAt;
+    private LocalDateTime tokenExpiresAt;
     private String upn;
 }

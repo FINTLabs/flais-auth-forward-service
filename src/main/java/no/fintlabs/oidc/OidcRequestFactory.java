@@ -57,7 +57,7 @@ public class OidcRequestFactory {
         return UriComponentsBuilder.fromUriString(authorizationEndpoint)
                 .queryParam("response_type", "code")
                 .queryParam("redirect_uri", createCallbackUri(headers))
-                .queryParam("state", session.getState())
+                .queryParam("state", session.getSessionId())
                 .queryParam("nonce", RandomStringUtils.randomAlphanumeric(32))
                 //.queryParam("code_challenge", PkceUtil.generateCodeChallange(PkceUtil.generateCodeVerifier()))
                 //        .queryParam("code_challenge_method", "S256")
