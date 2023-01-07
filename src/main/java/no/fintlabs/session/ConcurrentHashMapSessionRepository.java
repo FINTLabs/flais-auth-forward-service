@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.oidc.Token;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -22,6 +23,7 @@ public class ConcurrentHashMapSessionRepository implements SessionRepository {
         Session session = Session.builder()
                 .codeVerifier(codeVerifier)
                 .state(sessionId)
+                .sessionStart(LocalDateTime.now())
                 .build();
 
         sessions.put(sessionId, session);
