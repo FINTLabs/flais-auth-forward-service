@@ -199,7 +199,7 @@ public class OidcService {
         return oidcRequestFactory.createRedirectAfterLoginUri(headers);
     }
 
-    @Scheduled(cron = "*/10 * * * * *")
+    @Scheduled(cron = "${fint.sso.token-refresh-cron:0 */1 * * * *}")
     public void refreshToken() {
         log.debug("Checking {} session for expiring tokens", sessionService.getSessions().size());
         sessionService.getSessions()
@@ -211,7 +211,7 @@ public class OidcService {
                     log.debug("Token is expiring in {} seconds", between.toSeconds());
                     if (between.getSeconds() <= 60) {
                         log.debug("Token has less than 60 seconds left. Refreshing token.");
-                        //refreshToken(session.getState(), session.getToken());
+                        refreshToken(session.getSessionId(), session.getToken());
                     } else {
                         log.debug("No need to refresh token!");
                     }

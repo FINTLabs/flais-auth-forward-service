@@ -70,7 +70,7 @@ public class SessionService {
                 .orElseThrow(MissingAuthentication::new);
     }
 
-    @Scheduled(cron = "*/10 * * * * *")
+    @Scheduled(cron = "${fint.sso.old-sessions-cleanup-cron:0 */1 * * * *}")
     public void cleanupOldSessions() {
         List<Session> oldSessions = sessionRepository
                 .getSessions()
