@@ -2,7 +2,7 @@ package no.fintlabs.session;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.MissingAuthentication;
-import no.fintlabs.oidc.OidcConfiguration;
+import no.fintlabs.ApplicationConfiguration;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -23,12 +23,12 @@ public class CookieService {
     @Value("${spring.webflux.base-path:/}")
     private String basePath;
 
-    private final OidcConfiguration oidcConfiguration;
+    private final ApplicationConfiguration applicationConfiguration;
 
     private static final byte[] cookieHashKey = RandomStringUtils.randomAscii(32).getBytes();
 
-    public CookieService(OidcConfiguration oidcConfiguration) {
-        this.oidcConfiguration = oidcConfiguration;
+    public CookieService(ApplicationConfiguration applicationConfiguration) {
+        this.applicationConfiguration = applicationConfiguration;
     }
 
     public String verifyCookie(Optional<String> cookieValue) throws MissingAuthentication {
@@ -49,11 +49,11 @@ public class CookieService {
                 //.domain(headers.getFirst("x-forwarded-host"))
                 .httpOnly(true)
                 .sameSite("Lax")
-                .maxAge(oidcConfiguration.getSessionMaxAgeInMinutes() == -1
+                .maxAge(applicationConfiguration.getSessionMaxAgeInMinutes() == -1
                         ? Duration.ofSeconds(expiresIn)
-                        : Duration.ofMinutes(oidcConfiguration.getSessionMaxAgeInMinutes())
+                        : Duration.ofMinutes(applicationConfiguration.getSessionMaxAgeInMinutes())
                 )
-                .secure(oidcConfiguration.isEnforceHttps())
+                .secure(applicationConfiguration.isEnforceHttps())
                 .path(basePath)
                 .build();
     }
@@ -63,7 +63,7 @@ public class CookieService {
                 .httpOnly(true)
                 .sameSite("Lax")
                 .maxAge(0)
-                .secure(oidcConfiguration.isEnforceHttps())
+                .secure(applicationConfiguration.isEnforceHttps())
                 .path("/")
                 .build();
     }

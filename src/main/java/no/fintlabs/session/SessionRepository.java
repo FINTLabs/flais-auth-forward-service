@@ -10,9 +10,11 @@ import java.util.Optional;
 
 public interface SessionRepository {
 
-    Session addSession(String sessionId, String codeVerifier);
+    //Session addSession(String sessionId, String codeVerifier);
+    Session addSession(String sessionId, String codeVerifier, LocalDateTime sessionStart);
     void updateSession(String sessionId, Token token);
-    void clearSession(String sessionId);
+    void clearSessionByCookieValue(String cookieValue);
+    void clearSessionBySessionId(String sessionId);
     Optional<Session> getTokenBySessionId(String sessionId);
     Collection<Session> getSessions();
 

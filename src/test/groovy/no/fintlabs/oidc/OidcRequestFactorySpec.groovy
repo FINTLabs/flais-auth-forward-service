@@ -1,6 +1,6 @@
 package no.fintlabs.oidc
 
-import no.fintlabs.Headers
+import no.fintlabs.ApplicationConfiguration
 import no.fintlabs.session.Session
 import org.springframework.http.HttpHeaders
 import org.springframework.web.util.UriComponentsBuilder
@@ -12,7 +12,7 @@ class OidcRequestFactorySpec extends Specification {
 
 
     void setup() {
-        def configuration = new OidcConfiguration()
+        def configuration = new ApplicationConfiguration()
         oidcRequestFactory = new OidcRequestFactory(configuration)
     }
 

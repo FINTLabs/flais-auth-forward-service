@@ -16,7 +16,6 @@ public class Session {
     @JsonIgnore
     private String codeVerifier;
 
-    @JsonIgnore
     private String state;
 
     private LocalDateTime sessionStart;

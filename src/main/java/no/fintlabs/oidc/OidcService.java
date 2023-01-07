@@ -7,6 +7,7 @@ import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.ApplicationConfiguration;
 import no.fintlabs.MissingAuthentication;
 import no.fintlabs.session.CookieService;
 import no.fintlabs.session.Session;
@@ -38,7 +39,7 @@ public class OidcService {
 
     public static final String WELL_KNOWN_OPENID_CONFIGURATION_PATH = ".well-known/openid-configuration";
 
-    private final OidcConfiguration oidcConfiguration;
+    private final ApplicationConfiguration applicationConfiguration;
     private final WebClient webClient;
 
     private final SessionService sessionService;
@@ -52,8 +53,8 @@ public class OidcService {
     @Getter
     private Jwk jwk;
 
-    public OidcService(OidcConfiguration oidcConfiguration, WebClient webClient, SessionService sessionService, CookieService cookieService, OidcRequestFactory oidcRequestFactory) {
-        this.oidcConfiguration = oidcConfiguration;
+    public OidcService(ApplicationConfiguration applicationConfiguration, WebClient webClient, SessionService sessionService, CookieService cookieService, OidcRequestFactory oidcRequestFactory) {
+        this.applicationConfiguration = applicationConfiguration;
         this.webClient = webClient;
         this.sessionService = sessionService;
         this.cookieService = cookieService;
@@ -75,8 +76,8 @@ public class OidcService {
                         BodyInserters
                                 .fromFormData(
                                         OidcRequestFactory.createTokenRequestBody(
-                                                oidcConfiguration.getClientId(),
-                                                oidcConfiguration.getClientSecret(),
+                                                applicationConfiguration.getClientId(),
+                                                applicationConfiguration.getClientSecret(),
                                                 params.get("code"),
                                                 oidcRequestFactory.createCallbackUri(headers)
                                         ))
@@ -105,8 +106,8 @@ public class OidcService {
                         BodyInserters
                                 .fromFormData(
                                         OidcRequestFactory.createRefreshTokenRequestBody(
-                                                oidcConfiguration.getClientId(),
-                                                oidcConfiguration.getClientSecret(),
+                                                applicationConfiguration.getClientId(),
+                                                applicationConfiguration.getClientSecret(),
                                                 token.getRefreshToken()
                                         ))
                 )
@@ -126,7 +127,7 @@ public class OidcService {
             DecodedJWT jwt = JWT.decode(token.getAccessToken());
             Algorithm algorithm = none();
 
-            if (oidcConfiguration.isVerifyTokenSignature()) {
+            if (applicationConfiguration.isVerifyTokenSignature()) {
                 Key key = jwk.getKeyById(jwt.getKeyId()).orElseThrow();
                 algorithm = RSA256((RSAPublicKey) key.getPublicKey(), null);
             }
@@ -145,7 +146,7 @@ public class OidcService {
         log.info("Retrieving well know OpenId configuration...");
         wellKnownConfiguration = webClient
                 .get()
-                .uri(oidcConfiguration.getIssuerUri().pathSegment(WELL_KNOWN_OPENID_CONFIGURATION_PATH).build().toUri())
+                .uri(applicationConfiguration.getIssuerUri().pathSegment(WELL_KNOWN_OPENID_CONFIGURATION_PATH).build().toUri())
                 .retrieve()
                 .bodyToMono(WellKnownConfiguration.class)
                 .block();
@@ -169,7 +170,7 @@ public class OidcService {
 
         cookieValue.ifPresent(s -> {
             log.debug("{} sessions in session repository before logout", sessionService.sessionCount());
-            sessionService.clearSession(s);
+            sessionService.clearSessionByCookieValue(s);
             log.debug("{} sessions in session repository after logout", sessionService.sessionCount());
 
             response.addCookie(cookieService.createLogoutCookie(s));

@@ -1,7 +1,6 @@
 package no.fintlabs
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import no.fintlabs.oidc.OidcConfiguration
 import no.fintlabs.oidc.OidcService
 import no.fintlabs.oidc.Token
 import no.fintlabs.oidc.UnableToVerifyTokenSignature
@@ -22,13 +21,13 @@ class AuthControllerSpec extends Specification {
     WebTestClient webTestClient
 
     @SpringBean
-    OidcConfiguration oidcConfiguration = new OidcConfiguration()
+    ApplicationConfiguration configuration = new ApplicationConfiguration()
 
     @SpringBean
-    CookieService cookieService = new CookieService(oidcConfiguration)
+    CookieService cookieService = new CookieService(configuration)
 
     @SpringBean
-    SessionService sessionService = new SessionService(new ConcurrentHashMapSessionRepository())
+    SessionService sessionService = new SessionService(configuration, new ConcurrentHashMapSessionRepository())
 
     @SpringBean
     OidcService oidcService = Mock(OidcService.class)
@@ -38,7 +37,7 @@ class AuthControllerSpec extends Specification {
 
         webTestClient = WebTestClient.bindToController(controller).build()
 
-        oidcConfiguration.setVerifyTokenSignature(false)
+        configuration.setVerifyTokenSignature(false)
     }
 
     def "If no valid authentication is present we should return 307 and a new session should be initialized"() {

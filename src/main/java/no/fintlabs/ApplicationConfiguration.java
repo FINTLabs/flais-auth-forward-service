@@ -1,4 +1,4 @@
-package no.fintlabs.oidc;
+package no.fintlabs;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -12,12 +12,15 @@ import java.util.List;
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "fint.sso")
-public class OidcConfiguration {
+public class ApplicationConfiguration {
     private String clientId;
     private String clientSecret;
     private UriComponentsBuilder issuerUri = UriComponentsBuilder.fromUri(URI.create("https://idp.felleskomponent.no/nidp/oauth/nam"));
     private List<String> scopes = Arrays.asList("end-user-profile", "openid");
-    private long sessionMaxAgeInMinutes = -1;
+    /**
+     * This should be set to the refresh token timeout value of the IDP
+     */
+    private long sessionMaxAgeInMinutes = 1440;
     private boolean enforceHttps = true;
     private URI redirectAfterLogoutUri = URI.create("/_oauth/logged-out");
     private URI redirectAfterLoginUri = URI.create("/");

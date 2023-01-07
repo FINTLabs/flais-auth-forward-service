@@ -1,6 +1,7 @@
 package no.fintlabs.oidc;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.ApplicationConfiguration;
 import no.fintlabs.session.Session;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,10 +22,10 @@ public class OidcRequestFactory {
     @Value("${spring.webflux.base-path:/}")
     private String basePath;
 
-    private final OidcConfiguration oidcConfiguration;
+    private final ApplicationConfiguration applicationConfiguration;
 
-    public OidcRequestFactory(OidcConfiguration oidcConfiguration) {
-        this.oidcConfiguration = oidcConfiguration;
+    public OidcRequestFactory(ApplicationConfiguration applicationConfiguration) {
+        this.applicationConfiguration = applicationConfiguration;
     }
 
     public static MultiValueMap<String, String> createTokenRequestBody(String clientId, String clientSecret, String code, String callbackUri) {
@@ -60,8 +61,8 @@ public class OidcRequestFactory {
                 .queryParam("nonce", RandomStringUtils.randomAlphanumeric(32))
                 //.queryParam("code_challenge", PkceUtil.generateCodeChallange(PkceUtil.generateCodeVerifier()))
                 //        .queryParam("code_challenge_method", "S256")
-                .queryParam("client_id", oidcConfiguration.getClientId())
-                .queryParam("scope", String.join("+", oidcConfiguration.getScopes()))
+                .queryParam("client_id", applicationConfiguration.getClientId())
+                .queryParam("scope", String.join("+", applicationConfiguration.getScopes()))
                 .build()
                 .toUri();
     }
@@ -83,7 +84,7 @@ public class OidcRequestFactory {
                 .port(getPort(headers))
                 .host(headers.getFirst(X_FORWARDED_HOST))
                 .path(basePath)
-                .path(oidcConfiguration.getRedirectAfterLoginUri().toString())
+                .path(applicationConfiguration.getRedirectAfterLoginUri().toString())
                 .build()
                 .toUri();
 
@@ -95,18 +96,18 @@ public class OidcRequestFactory {
     public URI createRedirectAfterLogoutUri() {
 
 
-        if (oidcConfiguration.getRedirectAfterLogoutUri().isAbsolute()) {
-            return oidcConfiguration.getRedirectAfterLogoutUri();
+        if (applicationConfiguration.getRedirectAfterLogoutUri().isAbsolute()) {
+            return applicationConfiguration.getRedirectAfterLogoutUri();
         }
         return UriComponentsBuilder.newInstance()
                 .path(basePath)
-                .path(oidcConfiguration.getRedirectAfterLogoutUri().toString())
+                .path(applicationConfiguration.getRedirectAfterLogoutUri().toString())
                 .build()
                 .toUri();
     }
 
     public String getPort(HttpHeaders headers) {
-        if (oidcConfiguration.isEnforceHttps()) {
+        if (applicationConfiguration.isEnforceHttps()) {
             return null;
         }
 
@@ -118,6 +119,6 @@ public class OidcRequestFactory {
     }
 
     public String getProtocol(HttpHeaders headers) {
-        return oidcConfiguration.isEnforceHttps() ? "https" : headers.getFirst(X_FORWARDED_PROTO);
+        return applicationConfiguration.isEnforceHttps() ? "https" : headers.getFirst(X_FORWARDED_PROTO);
     }
 }
