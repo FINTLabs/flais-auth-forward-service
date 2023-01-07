@@ -2,7 +2,7 @@ package no.fintlabs.session;
 
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.ApplicationConfiguration;
-import no.fintlabs.MissingAuthentication;
+import no.fintlabs.controller.MissingAuthentication;
 import no.fintlabs.oidc.PkceUtil;
 import no.fintlabs.oidc.Token;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -56,12 +57,16 @@ public class SessionService {
         return sessionRepository.getSessions();
     }
 
+    public Optional<Session> getSessionByCookieValue(String cookieValue) {
+        return sessionRepository.getTokenBySessionId(CookieService.getSessionIdFromValue(cookieValue));
+    }
+
     public int sessionCount() {
         return sessionRepository.getSessions().size();
     }
 
     public Session verifySession(String sessionId) throws MissingAuthentication {
-        return sessionRepository.getTokenBySessionId(CookieService.getStateFromValue(sessionId))
+        return sessionRepository.getTokenBySessionId(CookieService.getSessionIdFromValue(sessionId))
                 .orElseThrow(MissingAuthentication::new);
     }
 

@@ -13,7 +13,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 
-import static no.fintlabs.Headers.*;
+import static no.fintlabs.controller.Headers.*;
 
 @Slf4j
 @Component

@@ -1,4 +1,4 @@
-package no.fintlabs;
+package no.fintlabs.controller;
 
 public class Headers {
     public static final String X_FORWARDED_PROTO = "X-Forwarded-Proto";

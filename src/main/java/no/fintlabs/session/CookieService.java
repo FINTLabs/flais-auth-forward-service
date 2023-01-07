@@ -1,7 +1,7 @@
 package no.fintlabs.session;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.MissingAuthentication;
+import no.fintlabs.controller.MissingAuthentication;
 import no.fintlabs.ApplicationConfiguration;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
@@ -72,7 +72,7 @@ public class CookieService {
         return String.format("%s.%s", createHash(value), value);
     }
 
-    public static String getStateFromValue(String value) {
+    public static String getSessionIdFromValue(String value) {
         List<String> cookieValues = Arrays.asList(value.split("\\."));
 
         return cookieValues.get(1);
