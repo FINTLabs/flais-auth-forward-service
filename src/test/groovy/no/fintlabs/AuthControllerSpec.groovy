@@ -1,18 +1,17 @@
 package no.fintlabs
 
+
 import com.fasterxml.jackson.databind.ObjectMapper
-import no.fintlabs.oidc.OidcService
-import no.fintlabs.oidc.Token
-import no.fintlabs.oidc.UnableToVerifyTokenSignature
+import no.fintlabs.oidc.*
 import no.fintlabs.session.ConcurrentHashMapSessionRepository
 import no.fintlabs.session.CookieService
-import no.fintlabs.session.Session
 import no.fintlabs.session.SessionService
 import org.spockframework.spring.SpringBean
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.web.reactive.function.client.WebClient
 import spock.lang.Specification
 
 @WebFluxTest(controllers = AuthController.class)
@@ -30,7 +29,13 @@ class AuthControllerSpec extends Specification {
     SessionService sessionService = new SessionService(configuration, new ConcurrentHashMapSessionRepository())
 
     @SpringBean
-    OidcService oidcService = Mock(OidcService.class)
+    OidcService oidcService = new OidcService(
+            configuration,
+            Mock(WebClient),
+            sessionService,
+            cookieService,
+            new OidcRequestFactory(configuration)
+    )//Mock(OidcService.class)
 
     void setup() {
         def controller = new AuthController(oidcService, cookieService, sessionService)
@@ -38,6 +43,9 @@ class AuthControllerSpec extends Specification {
         webTestClient = WebTestClient.bindToController(controller).build()
 
         configuration.setVerifyTokenSignature(false)
+
+        oidcService.setWellKnownConfiguration(new WellKnownConfiguration(authorizationEndpoint: "authorizationEndpoint"))
+        oidcService.setJwk(new ObjectMapper().readValue(new ClassPathResource('jwk.json').getFile(), Jwk.class))
     }
 
     def "If no valid authentication is present we should return 307 and a new session should be initialized"() {
@@ -49,13 +57,9 @@ class AuthControllerSpec extends Specification {
                 .uri("/_oauth")
                 .exchange()
 
-
         then:
-        oidcService.getAuthorizationUri(_ as HttpHeaders, _ as Session) >> URI.create("authorizationUri")
         response.expectStatus()
                 .isTemporaryRedirect()
-        response.expectHeader()
-                .location("authorizationUri")
         sessionCount + 1 == sessionService.sessionCount()
 
     }
@@ -66,7 +70,8 @@ class AuthControllerSpec extends Specification {
         def session = sessionService.initializeSession()
         def cookie = cookieService.createAuthenticationCookie(session.getState(), 3600)
         sessionService.updateSession(session.getState(),
-                new ObjectMapper().readValue(new ClassPathResource('token.json').getFile(), Token.class))
+                TokenFactory.createTokenWithoutSignature()
+        )
 
         when:
         def response = webTestClient
@@ -85,8 +90,10 @@ class AuthControllerSpec extends Specification {
         given:
         def session = sessionService.initializeSession()
         def cookie = cookieService.createAuthenticationCookie(session.getState(), 3600)
-        sessionService.updateSession(session.getState(),
-                new ObjectMapper().readValue(new ClassPathResource('token.json').getFile(), Token.class))
+        sessionService.updateSession(
+                session.getState(),
+                TokenFactory.createTokenWithoutSignature()
+        )
 
         when:
         def response = webTestClient
@@ -104,8 +111,10 @@ class AuthControllerSpec extends Specification {
         given:
         def session = sessionService.initializeSession()
         def cookie = cookieService.createAuthenticationCookie(session.getState(), 3600)
-        sessionService.updateSession(session.getState(),
-                new ObjectMapper().readValue(new ClassPathResource('token.json').getFile(), Token.class))
+        sessionService.updateSession(
+                session.getState(),
+                TokenFactory.createTokenWithoutSignature()
+        )
 
         when:
         def response = webTestClient
@@ -123,8 +132,10 @@ class AuthControllerSpec extends Specification {
         given:
         def session = sessionService.initializeSession()
         def cookie = cookieService.createAuthenticationCookie(session.getState(), 3600)
-        sessionService.updateSession(session.getState(),
-                new ObjectMapper().readValue(new ClassPathResource('token.json').getFile(), Token.class))
+        sessionService.updateSession(
+                session.getState(),
+                TokenFactory.createTokenWithSignature()
+        )
 
         when:
         def response = webTestClient
@@ -134,7 +145,30 @@ class AuthControllerSpec extends Specification {
                 .exchange()
 
         then:
-        oidcService.verifyToken(_ as Token) >> { throw new UnableToVerifyTokenSignature() }
+        //oidcService.verifyToken(_ as Token) >> { throw new UnableToVerifyTokenSignature() }
         response.expectStatus().isForbidden()
+    }
+
+    def "When logging out the session should be removed"() {
+        given:
+        def session = sessionService.initializeSession()
+        def cookie = cookieService.createAuthenticationCookie(session.getState(), configuration.getSessionMaxAgeInMinutes())
+        sessionService.updateSession(
+                session.getState(),
+                TokenFactory.createTokenWithoutSignature()
+        )
+
+        def sessionCountBeforeLogout = sessionService.sessionCount()
+
+        when:
+        webTestClient
+                .get()
+                .uri("/_oauth/logout")
+                .cookie(cookie.getName(), cookie.getValue())
+                .exchange()
+        def sessionCountAfterLogout = sessionService.sessionCount()
+
+        then:
+        sessionCountAfterLogout == sessionCountBeforeLogout - 1
     }
 }

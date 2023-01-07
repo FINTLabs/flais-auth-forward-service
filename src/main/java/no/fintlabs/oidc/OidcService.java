@@ -6,6 +6,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.ApplicationConfiguration;
 import no.fintlabs.MissingAuthentication;
@@ -44,6 +45,7 @@ public class OidcService {
 
     private final SessionService sessionService;
     @Getter
+    @Setter
     private WellKnownConfiguration wellKnownConfiguration;
 
     private final CookieService cookieService;
@@ -51,6 +53,7 @@ public class OidcService {
     private final OidcRequestFactory oidcRequestFactory;
 
     @Getter
+    @Setter
     private Jwk jwk;
 
     public OidcService(ApplicationConfiguration applicationConfiguration, WebClient webClient, SessionService sessionService, CookieService cookieService, OidcRequestFactory oidcRequestFactory) {
@@ -131,9 +134,12 @@ public class OidcService {
                 Key key = jwk.getKeyById(jwt.getKeyId()).orElseThrow();
                 algorithm = RSA256((RSAPublicKey) key.getPublicKey(), null);
             }
-
             algorithm.verify(jwt);
             log.debug("Token is valid!");
+//            else {
+//                log.debug("TOKEN VERIFICATION IS DISABLED!!!!!");
+//            }
+
         } catch (SignatureVerificationException | InvalidPublicKeyException e) {
             log.debug("Token is not valid!");
             log.warn("{}", e.toString());
