@@ -72,17 +72,53 @@ public class SessionService {
 
     @Scheduled(cron = "${fint.sso.old-sessions-cleanup-cron:0 */1 * * * *}")
     public void cleanupOldSessions() {
-        List<Session> oldSessions = sessionRepository
-                .getSessions()
-                .stream()
-                .filter(session -> {
-                    Duration duration = Duration.between(LocalDateTime.now(), session.getSessionStartAt().plusMinutes(configuration.getSessionMaxAgeInMinutes()));
-                    return duration.toMinutes() <= 60;
-                })
-                .toList();
+        List<Session> oldSessions = getNonActiveSessions();
 
         log.debug("{} old sessions to cleanup", oldSessions.size());
 
         oldSessions.forEach(session -> clearSessionBySessionId(session.getSessionId()));
+    }
+
+    public List<Session> getNonActiveSessions() {
+        return sessionRepository
+                .getSessions()
+                .stream()
+                .filter(this::sessionIsNotActive
+//                        session -> {
+//                    Duration duration = Duration.between(LocalDateTime.now(), session.getSessionStartAt().plusMinutes(configuration.getSessionMaxAgeInMinutes()));
+//                    return duration.toMinutes() <= 60;
+//                }
+                )
+                .toList();
+    }
+
+    public List<Session> getActiveSessions() {
+        return getSessions()
+                .stream()
+                .filter(session -> session.getUpn() != null)
+                .filter(this::isSessionActive)
+                .toList();
+    }
+
+    public boolean isSessionActive(Session session) {
+
+        //if (ObjectUtils.isNotEmpty(session.getToken())) {
+        return getMinutesLeftOfSession(session) > 0;
+        //}
+
+        //return false;
+    }
+
+    public boolean sessionIsNotActive(Session session) {
+        return !isSessionActive(session);
+    }
+
+    private long getMinutesLeftOfSession(Session session) {
+        return Duration
+                .between(
+                        LocalDateTime.now(),
+                        session.getSessionStartAt().plusMinutes(configuration.getSessionMaxAgeInMinutes())
+                )
+                .toMinutes();
     }
 }
