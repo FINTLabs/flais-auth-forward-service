@@ -52,7 +52,7 @@ public class ConcurrentHashMapSessionRepository implements SessionRepository {
     }
 
     public Optional<Session> getTokenBySessionId(String sessionId) {
-        log.debug("Session ({}) with exists: {}", sessionId, sessions.containsKey(sessionId));
+        log.debug("Session ({}) exists: {}", sessionId, sessions.containsKey(sessionId));
         return Optional.ofNullable(sessions.get(sessionId));
     }
 
