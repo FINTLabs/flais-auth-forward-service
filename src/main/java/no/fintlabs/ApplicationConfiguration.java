@@ -26,4 +26,5 @@ public class ApplicationConfiguration {
     private URI redirectAfterLoginUri = URI.create("/");
     private String logoutMessage;
     private boolean verifyTokenSignature = true;
+    private long secondsBeforeTokenRefresh = 60;
 }
