@@ -28,6 +28,7 @@ import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -201,17 +202,17 @@ public class OidcService {
 
     @Scheduled(cron = "${fint.sso.token-refresh-cron:0 */1 * * * *}")
     public void refreshToken() {
-        log.debug("Checking {} session for expiring tokens", sessionService.getSessions().size());
-        sessionService.getSessions()
-                .stream()
-                .filter(session -> session.getUpn() != null)
+        List<Session> activeSessions = sessionService.getActiveSessions();
+        log.debug("Checking {} active session for expiring tokens", activeSessions.size());
+
+        activeSessions
                 .forEach(session -> {
-                    log.debug("Refreshed token for UPN {}", session.getUpn());
                     Duration between = Duration.between(LocalDateTime.now(), session.getTokenExpiresAt());
                     log.debug("Token is expiring in {} seconds", between.toSeconds());
                     if (between.getSeconds() <= 60) {
                         log.debug("Token has less than 60 seconds left. Refreshing token.");
                         refreshToken(session.getSessionId(), session.getToken());
+                        log.debug("Refreshed token for UPN {}", session.getUpn());
                     } else {
                         log.debug("No need to refresh token!");
                     }
