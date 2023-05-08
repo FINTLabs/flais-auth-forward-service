@@ -15,7 +15,7 @@ import java.util.List;
 public class ApplicationConfiguration {
     private String clientId;
     private String clientSecret;
-    private String idpHostname;
+    private UriComponentsBuilder issuerUri = UriComponentsBuilder.fromUri(URI.create("https://idp.felleskomponent.no/nidp/oauth/nam"));
     private List<String> scopes = Arrays.asList("end-user-profile", "openid");
     private long sessionMaxAgeInMinutes = 1440;
     private boolean enforceHttps = true;
@@ -25,7 +25,8 @@ public class ApplicationConfiguration {
     private boolean verifyTokenSignature = true;
     private long secondsBeforeTokenRefresh = 60;
 
-    public UriComponentsBuilder getIssuerUri() {
-        return UriComponentsBuilder.fromUri(URI.create(String.format("https://%s/nidp/oauth/nam", idpHostname)));
+    public void setIssuerUri(String issuerUri) {
+        this.issuerUri = UriComponentsBuilder.fromUri(URI.create(issuerUri));
     }
+
 }

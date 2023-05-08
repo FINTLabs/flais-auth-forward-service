@@ -35,7 +35,7 @@ class OidcServiceSpec extends Specification {
         mockWebServer.start(8090)
 
         configuration = new ApplicationConfiguration()
-        configuration.setIssuerUri(UriComponentsBuilder.fromUri(URI.create(mockWebServer.url("/").toString())))
+        configuration.setIssuerUri(mockWebServer.url("/").toString())
         sessionRepository = new ConcurrentHashMapSessionRepository()
         cookieService = new CookieService(configuration)
         oidcRequestFactory = new OidcRequestFactory(configuration)
