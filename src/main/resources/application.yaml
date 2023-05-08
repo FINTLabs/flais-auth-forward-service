@@ -1,6 +1,7 @@
 fint:
   sso:
     logout-message: Du er logget ut.
+    idpHost: idp.felleskomponent.no
 spring:
   thymeleaf:
     prefix: file:src/main/resources/templates/
