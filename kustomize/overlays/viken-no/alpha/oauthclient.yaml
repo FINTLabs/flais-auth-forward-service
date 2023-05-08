@@ -1,7 +1,0 @@
-apiVersion: fintlabs.no/v1alpha1
-kind: NamOAuthClientApplicationResource
-metadata:
-  name: auth-forward
-spec:
-  redirectUris:
-    - https://flyt.vigoiks.no/alpha/viken-no/_oauth/callback
