@@ -17,4 +17,4 @@ spec:
                 name: fint-flyt-auth-forward
           env:
             - name: spring.webflux.base-path
-              value: /alpha/viken-no
+              value: /vlfk-no
