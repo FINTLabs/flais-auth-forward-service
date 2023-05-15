@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 public class Session {
-    @JsonIgnore
+    //@JsonIgnore
     private Token token;
 
     @JsonIgnore
