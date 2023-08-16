@@ -21,6 +21,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
@@ -117,6 +118,11 @@ public class OidcService {
                 )
                 .retrieve()
                 .bodyToMono(Token.class)
+                .doOnError(WebClientResponseException.class, ex -> {
+                    log.error("WebClientResponseException occurred: {}", ex.getMessage());
+                    log.info("Trying new initialization");
+                    init();
+                })
                 .subscribe(tokenResponse -> {
                     logToken(tokenResponse);
                     tokenResponse.setRefreshToken(token.getRefreshToken());
