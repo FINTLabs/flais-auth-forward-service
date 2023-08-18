@@ -120,8 +120,6 @@ public class OidcService {
                 .bodyToMono(Token.class)
                 .doOnError(WebClientResponseException.class, ex -> {
                     log.error("WebClientResponseException occurred: {}", ex.getMessage());
-                    log.info("Trying new initialization");
-                    init();
                 })
                 .subscribe(tokenResponse -> {
                     logToken(tokenResponse);
