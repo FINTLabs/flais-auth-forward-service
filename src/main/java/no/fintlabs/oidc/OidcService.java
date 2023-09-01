@@ -119,6 +119,7 @@ public class OidcService {
                 .retrieve()
                 .bodyToMono(Token.class)
                 .doOnError(WebClientResponseException.class, ex -> {
+                    log.error("Error occured for clientId: {}", applicationConfiguration.getClientId());
                     log.error("WebClientResponseException occurred: {}", ex.getMessage());
                 })
                 .subscribe(tokenResponse -> {
