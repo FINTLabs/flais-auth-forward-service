@@ -34,6 +34,8 @@ public class ConcurrentHashMapSessionRepository implements SessionRepository {
     public void updateSession(String sessionId, Token token) {
         DecodedJWT jwt = JWT.decode(token.getAccessToken());
 
+        jwt.getClaims().forEach((key, value) -> log.info("Key in JWT: {}", key));
+
         Session session = sessions.get(sessionId);
         session.setToken(token);
         session.setUpn(jwt.getClaims().get("email").asString());
