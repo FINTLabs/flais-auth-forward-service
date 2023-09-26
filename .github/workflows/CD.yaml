@@ -2,7 +2,8 @@ name: Create and publish a Docker image
 
 on:
   push:
-    branches: ['main']
+    branches:
+      - support-id-porten-token
 
 env:
   REGISTRY: ghcr.io
@@ -18,6 +19,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          ref: support-id-porten-token
 
       - name: Log in to the Container registry
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
@@ -33,7 +36,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=sha,enable=true,priority=100,prefix=sha-,suffix=,format=short
-            type=raw,value=latest
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v3.2.0
         with:

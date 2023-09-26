@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: ['*']
+    branches:
+      - support-id-porten-token
 
 
 jobs:
@@ -15,6 +16,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          ref: support-id-porten-token
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
