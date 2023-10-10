@@ -121,10 +121,6 @@ public class OidcService {
                 .doOnError(WebClientResponseException.class, ex -> {
                     log.error("Error occured for clientId: {}", applicationConfiguration.getClientId());
                     log.error("WebClientResponseException occurred: {}", ex.getMessage());
-
-                    // TODO remove this when a proper solution has been found
-                    // https://fintlabs.atlassian.net/browse/FFS-495
-                    System.exit(1);
                 })
                 .subscribe(tokenResponse -> {
                     logToken(tokenResponse);
