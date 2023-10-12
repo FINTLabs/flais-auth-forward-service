@@ -104,6 +104,11 @@ public class OidcService {
     public void refreshToken(String state, Token token) {
 
         log.debug("Refreshing token...");
+
+        // TODO: 12/10/2023 remove logging of sensitive credentials
+        log.debug("clientId: {}", applicationConfiguration.getClientId());
+        log.debug("clientSecret: {}", applicationConfiguration.getClientSecret());
+
         webClient.post()
                 .uri(getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
