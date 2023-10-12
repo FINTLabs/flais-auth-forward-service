@@ -231,6 +231,8 @@ public class OidcService {
                         log.debug("Refreshed token for UPN {}", session.getUpn());
                     } else {
                         log.debug("No need to refresh token!");
+                        log.debug("Session: " + session.getSessionId());
+                        log.debug("Token: " + session.getToken());
                     }
                 });
     }
