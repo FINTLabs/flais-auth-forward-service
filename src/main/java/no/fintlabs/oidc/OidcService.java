@@ -219,6 +219,10 @@ public class OidcService {
         List<Session> activeSessions = sessionService.getActiveSessions();
         log.debug("Checking {} active session for expiring tokens", activeSessions.size());
 
+        // TODO: 12/10/2023 remove logging of sensitive credentials
+        log.debug("clientId: {}", applicationConfiguration.getClientId());
+        log.debug("clientSecret: {}", applicationConfiguration.getClientSecret());
+
         activeSessions
                 .forEach(session -> {
                     if (tokenNeedsRefresh(session)) {
