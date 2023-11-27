@@ -36,7 +36,7 @@ public class ConcurrentHashMapSessionRepository implements SessionRepository {
 
         Session session = sessions.get(sessionId);
         session.setToken(token);
-        session.setUpn(jwt.getClaims().get("email").asString());
+        session.setUpn(getClaimFromtJwt(jwt, "email"));
         session.setTokenExpiresAt(dateToLocalDateTime(jwt.getExpiresAt()));
 
         sessions.put(sessionId, session);
@@ -58,5 +58,14 @@ public class ConcurrentHashMapSessionRepository implements SessionRepository {
 
     public Collection<Session> getSessions() {
         return sessions.values();
+    }
+
+    private String getClaimFromtJwt(DecodedJWT jwt, String claim) {
+        if (jwt.getClaims().get(claim) == null) {
+            jwt.getClaims().forEach((k, v) -> log.debug("Claim: {}", k));
+            throw new ClaimNotFoundException("Claim " + claim + " not found in JWT");
+        }
+
+        return jwt.getClaims().get(claim).asString();
     }
 }
