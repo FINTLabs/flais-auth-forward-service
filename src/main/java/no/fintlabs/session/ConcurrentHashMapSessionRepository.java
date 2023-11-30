@@ -3,6 +3,7 @@ package no.fintlabs.session;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.ApplicationConfiguration;
 import no.fintlabs.oidc.Token;
 import org.springframework.stereotype.Repository;
 
@@ -16,7 +17,15 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Repository
 public class ConcurrentHashMapSessionRepository implements SessionRepository {
-    private final Map<String, Session> sessions = new ConcurrentHashMap<>();
+
+    private final Map<String, Session> sessions;
+
+    private final ApplicationConfiguration applicationConfiguration;
+
+    public ConcurrentHashMapSessionRepository(ApplicationConfiguration applicationConfiguration) {
+        this.applicationConfiguration = applicationConfiguration;
+        sessions = new ConcurrentHashMap<>();
+    }
 
     public Session addSession(String sessionId, String codeVerifier, LocalDateTime sessionStart) {
 
@@ -36,7 +45,7 @@ public class ConcurrentHashMapSessionRepository implements SessionRepository {
 
         Session session = sessions.get(sessionId);
         session.setToken(token);
-        session.setUpn(getClaimFromtJwt(jwt, "email"));
+        session.setUpn(getClaimFromtJwt(jwt, applicationConfiguration.getClaimForUpn()));
         session.setTokenExpiresAt(dateToLocalDateTime(jwt.getExpiresAt()));
 
         sessions.put(sessionId, session);

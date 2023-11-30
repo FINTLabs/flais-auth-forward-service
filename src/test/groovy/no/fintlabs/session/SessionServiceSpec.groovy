@@ -13,9 +13,9 @@ class SessionServiceSpec extends Specification {
     SessionService sessionService
 
     void setup() {
-         repository = new ConcurrentHashMapSessionRepository()
-         configuration = new ApplicationConfiguration()
-         sessionService = new SessionService(configuration, repository)
+        configuration = new ApplicationConfiguration()
+        repository = new ConcurrentHashMapSessionRepository(configuration)
+        sessionService = new SessionService(configuration, repository)
     }
 
     def "Old sessions should be removed"() {

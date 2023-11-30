@@ -24,6 +24,7 @@ public class ApplicationConfiguration {
     private String logoutMessage;
     private boolean verifyTokenSignature = true;
     private long secondsBeforeTokenRefresh = 60;
+    private String claimForUpn = "email";
 
     public void setIssuerUri(String issuerUri) {
         this.issuerUri = UriComponentsBuilder.fromUri(URI.create(issuerUri));

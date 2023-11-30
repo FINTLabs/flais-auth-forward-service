@@ -27,7 +27,7 @@ class AuthControllerSpec extends Specification {
     CookieService cookieService = new CookieService(configuration)
 
     @SpringBean
-    SessionService sessionService = new SessionService(configuration, new ConcurrentHashMapSessionRepository())
+    SessionService sessionService = new SessionService(configuration, new ConcurrentHashMapSessionRepository(configuration))
 
     @SpringBean
     OidcService oidcService = new OidcService(
