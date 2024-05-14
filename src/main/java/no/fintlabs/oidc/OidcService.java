@@ -23,10 +23,12 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import javax.annotation.PostConstruct;
 import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
+import java.sql.Time;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -57,6 +59,9 @@ public class OidcService {
     @Getter
     @Setter
     private Jwk jwk;
+
+    public static final Long RETRY_ATTEMPTS = 5L;
+    public static final Duration DELAY = Duration.ofSeconds((long) Math.pow(1L, 5L));
 
     public OidcService(ApplicationConfiguration applicationConfiguration, WebClient webClient, SessionService sessionService, CookieService cookieService, OidcRequestFactory oidcRequestFactory) {
         this.applicationConfiguration = applicationConfiguration;
@@ -123,6 +128,11 @@ public class OidcService {
                 )
                 .retrieve()
                 .bodyToMono(Token.class)
+                .retryWhen(Retry.fixedDelay(RETRY_ATTEMPTS, DELAY)
+                        .doAfterRetry(retrySignal -> log.debug("Retried {} times.", retrySignal.totalRetries()))
+                        .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) -> retrySignal.failure()))
+                )
+                .doOnSuccess(tokenResponse -> log.debug("Successfully refreshed token for: {}", tokenResponse.getAccessToken()))
                 .doOnError(WebClientResponseException.class, ex -> {
                     log.error("Error occured for clientId: {}", applicationConfiguration.getClientId());
                     log.error("WebClientResponseException occurred: {}", ex.getMessage());
