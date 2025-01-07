@@ -3,11 +3,13 @@ package no.fintlabs.session;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.ApplicationConfiguration;
 import no.fintlabs.controller.MissingAuthentication;
+import no.fintlabs.controller.MissingSession;
 import no.fintlabs.oidc.PkceUtil;
 import no.fintlabs.oidc.Token;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
@@ -28,11 +30,11 @@ public class SessionService {
         this.sessionRepository = sessionRepository;
     }
 
-    public Session initializeSession() throws UnsupportedEncodingException {
+    public Session initializeSession() {
         return initializeSession(LocalDateTime.now());
     }
 
-    public Session initializeSession(LocalDateTime sessionStart) throws UnsupportedEncodingException {
+    public Session initializeSession(LocalDateTime sessionStart) {
 
         log.debug("Initializing new session");
         String state = RandomStringUtils.randomAlphanumeric(32);
@@ -65,18 +67,12 @@ public class SessionService {
         return sessionRepository.getSessions().size();
     }
 
-    public Session verifySession(String sessionId) throws MissingAuthentication {
-        return sessionRepository.getTokenBySessionId(CookieService.getSessionIdFromValue(sessionId))
-                .orElseThrow(MissingAuthentication::new);
-    }
-
-    @Scheduled(cron = "${fint.sso.old-sessions-cleanup-cron:0 */1 * * * *}")
-    public void cleanupOldSessions() {
-        List<Session> oldSessions = getNonActiveSessions();
-
-        log.debug("{} old sessions to cleanup", oldSessions.size());
-
-        oldSessions.forEach(session -> clearSessionBySessionId(session.getSessionId()));
+    public Mono<Session> getSession(String sessionId) {
+        return sessionRepository.getTokenBySessionId(sessionId)
+                .map(Mono::just)
+                .orElseGet(() ->
+                        Mono.error(new MissingSession())
+                );
     }
 
     public List<Session> getNonActiveSessions() {

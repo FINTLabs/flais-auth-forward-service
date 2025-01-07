@@ -11,7 +11,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.swing.text.html.Option;
 import java.net.URI;
+import java.util.Optional;
 
 import static no.fintlabs.controller.Headers.*;
 
@@ -59,6 +61,7 @@ public class OidcRequestFactory {
                 .queryParam("redirect_uri", createCallbackUri(headers))
                 .queryParam("state", session.getSessionId())
                 .queryParam("nonce", RandomStringUtils.randomAlphanumeric(32))
+                .queryParam("prompt", "login")
                 //.queryParam("code_challenge", PkceUtil.generateCodeChallange(PkceUtil.generateCodeVerifier()))
                 //        .queryParam("code_challenge_method", "S256")
                 .queryParam("client_id", applicationConfiguration.getClientId())
@@ -71,7 +74,7 @@ public class OidcRequestFactory {
         return UriComponentsBuilder.newInstance()
                 .scheme(getProtocol(headers))
                 .port(getPort(headers))
-                .host(headers.getFirst(X_FORWARDED_HOST))
+                .host(getHost(headers))
                 .path(basePath)
                 .path("/_oauth/callback")
                 .build()
@@ -82,7 +85,7 @@ public class OidcRequestFactory {
         URI redirectUri = UriComponentsBuilder.newInstance()
                 .scheme(getProtocol(headers))
                 .port(getPort(headers))
-                .host(headers.getFirst(X_FORWARDED_HOST))
+                .host(getHost(headers))
                 .path(basePath)
                 .path(applicationConfiguration.getRedirectAfterLoginUri().toString())
                 .build()
@@ -115,10 +118,22 @@ public class OidcRequestFactory {
             return headers.getFirst(X_FORWARDED_PORT).equals("80") ? null : headers.getFirst(X_FORWARDED_PORT);
         }
 
-        return null;
+        return Optional.ofNullable(headers.getFirst(HttpHeaders.HOST))
+                .map(host -> host.contains(":") ? host.split(":")[1] : null)
+                .orElse(null);
     }
 
     public String getProtocol(HttpHeaders headers) {
-        return applicationConfiguration.isEnforceHttps() ? "https" : headers.getFirst(X_FORWARDED_PROTO);
+        if (applicationConfiguration.isEnforceHttps()) {
+            return "https";
+        }
+        return Optional.ofNullable(headers.getFirst(X_FORWARDED_PROTO)).orElse("http");
+    }
+
+    public String getHost(HttpHeaders headers) {
+        return Optional.ofNullable(headers.getFirst(X_FORWARDED_HOST))
+                .orElse(Optional.ofNullable(headers.getFirst(HttpHeaders.HOST))
+                        .map(host -> host.contains(":") ? host.split(":")[0] : host)
+                        .orElse(null));
     }
 }

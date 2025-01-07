@@ -7,8 +7,10 @@ import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.server.Cookie;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -31,16 +33,13 @@ public class CookieService {
         this.applicationConfiguration = applicationConfiguration;
     }
 
-    public String verifyCookie(Optional<String> cookieValue) throws MissingAuthentication {
-
-        String value = cookieValue.orElseThrow(MissingAuthentication::new);
+    public Mono<String> getSessionId(String value) {
         if (cookieValueIsValid(value)) {
             log.debug("Cookie is valid!");
-            return value;
+            return Mono.just(getSessionIdFromValue(value));
         }
         log.debug("Cookie is not valid!");
-        throw new MissingAuthentication();
-
+        return Mono.error(new MissingAuthentication());
     }
 
     public ResponseCookie createAuthenticationCookie(String state, long expiresIn) {
@@ -53,6 +52,16 @@ public class CookieService {
                         ? Duration.ofSeconds(expiresIn)
                         : Duration.ofMinutes(applicationConfiguration.getSessionMaxAgeInMinutes())
                 )
+                .secure(applicationConfiguration.isEnforceHttps())
+                .path(basePath)
+                .build();
+    }
+
+    public ResponseCookie createRemoveAuthenticationCookie() {
+        return ResponseCookie.from(COOKIE_NAME, "")
+                .httpOnly(true)
+                .sameSite("Lax")
+                .maxAge(0)
                 .secure(applicationConfiguration.isEnforceHttps())
                 .path(basePath)
                 .build();

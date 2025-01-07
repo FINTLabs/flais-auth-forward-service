@@ -9,7 +9,7 @@ import java.util.Base64;
 
 public class PkceUtil {
 
-    public static String generateCodeVerifier() throws UnsupportedEncodingException {
+    public static String generateCodeVerifier() {
         SecureRandom secureRandom = new SecureRandom();
         byte[] codeVerifier = new byte[32];
         secureRandom.nextBytes(codeVerifier);
@@ -17,7 +17,7 @@ public class PkceUtil {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
     }
 
-    public static String generateCodeChallange(String codeVerifier) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    public static String generateCodeChallange(String codeVerifier) throws NoSuchAlgorithmException {
 
         byte[] bytes = codeVerifier.getBytes(StandardCharsets.UTF_8);
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
