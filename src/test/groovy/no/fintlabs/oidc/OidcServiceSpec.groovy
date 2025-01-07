@@ -40,7 +40,7 @@ class OidcServiceSpec extends Specification {
         cookieService = new CookieService(configuration)
         oidcRequestFactory = new OidcRequestFactory(configuration)
         sessionService = new SessionService(configuration, sessionRepository)
-        oidcService = new OidcService(configuration, WebClient.create(), sessionService, cookieService, oidcRequestFactory)
+        oidcService = new OidcService(configuration, WebClient.create(), oidcRequestFactory)
 
         def dispatcher = new Dispatcher() {
             @Override
