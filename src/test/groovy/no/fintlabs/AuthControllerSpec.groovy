@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT
 import com.fasterxml.jackson.databind.ObjectMapper
 import no.fintlabs.controller.AuthController
 import no.fintlabs.oidc.*
-import no.fintlabs.session.ConcurrentHashMapSessionRepository
+import no.fintlabs.session.InMemorySessionRepository
 import no.fintlabs.session.CookieService
 import no.fintlabs.session.SessionRepository
 import no.fintlabs.session.SessionService
@@ -34,7 +34,7 @@ class AuthControllerSpec extends Specification {
     @SpringBean
     CookieService cookieService = new CookieService(configuration)
 
-    SessionRepository sessionRepository =  new ConcurrentHashMapSessionRepository(configuration)
+    SessionRepository sessionRepository =  new InMemorySessionRepository(configuration)
 
     @SpringBean
     SessionService sessionService = new SessionService(configuration, sessionRepository)

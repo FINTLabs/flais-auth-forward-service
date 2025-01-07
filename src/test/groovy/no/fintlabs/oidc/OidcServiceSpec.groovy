@@ -2,7 +2,7 @@ package no.fintlabs.oidc
 
 import no.fintlabs.ApplicationConfiguration
 import no.fintlabs.controller.Headers
-import no.fintlabs.session.ConcurrentHashMapSessionRepository
+import no.fintlabs.session.InMemorySessionRepository
 import no.fintlabs.session.CookieService
 import no.fintlabs.session.SessionRepository
 import no.fintlabs.session.SessionService
@@ -36,7 +36,7 @@ class OidcServiceSpec extends Specification {
 
         configuration = new ApplicationConfiguration()
         configuration.setIssuerUri(mockWebServer.url("/").toString())
-        sessionRepository = new ConcurrentHashMapSessionRepository(configuration)
+        sessionRepository = new InMemorySessionRepository(configuration)
         cookieService = new CookieService(configuration)
         oidcRequestFactory = new OidcRequestFactory(configuration)
         sessionService = new SessionService(configuration, sessionRepository)

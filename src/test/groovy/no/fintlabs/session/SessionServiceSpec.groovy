@@ -14,7 +14,7 @@ class SessionServiceSpec extends Specification {
 
     void setup() {
         configuration = new ApplicationConfiguration()
-        repository = new ConcurrentHashMapSessionRepository(configuration)
+        repository = new InMemorySessionRepository(configuration)
         sessionService = new SessionService(configuration, repository)
     }
 
