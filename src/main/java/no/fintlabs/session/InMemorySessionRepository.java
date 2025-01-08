@@ -46,7 +46,7 @@ public class InMemorySessionRepository implements SessionRepository {
         return session;
     }
 
-    public void updateSession(String sessionId, Token token) {
+    public Session updateSession(String sessionId, Token token) {
         DecodedJWT jwt = JWT.decode(token.getAccessToken());
 
         Session session = sessions.getIfPresent(sessionId);
@@ -57,6 +57,7 @@ public class InMemorySessionRepository implements SessionRepository {
         session.setTokenExpiresAt(dateToLocalDateTime(jwt.getExpiresAt()));
 
         sessions.put(sessionId, session);
+        return session;
     }
 
     public void clearSessionByCookieValue(String cookieValue) {

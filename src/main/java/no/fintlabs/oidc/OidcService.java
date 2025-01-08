@@ -118,8 +118,7 @@ public class OidcService {
 
     }
 
-    public boolean tokenValid(Token token) {
-
+    public boolean tokenIsValid(Token token) {
         try {
             DecodedJWT jwt = JWT.decode(token.getAccessToken());
             Algorithm algorithm = none();

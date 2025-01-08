@@ -43,8 +43,8 @@ public class SessionService {
         return sessionRepository.addSession(state, codeVerifier, sessionStart);
     }
 
-    public void updateSession(String sessionId, Token token) {
-        sessionRepository.updateSession(sessionId, token);
+    public Session updateSession(String sessionId, Token token) {
+        return sessionRepository.updateSession(sessionId, token);
     }
 
     public void clearSessionBySessionId(String sessionId) {
@@ -70,9 +70,7 @@ public class SessionService {
     public Mono<Session> getSession(String sessionId) {
         return sessionRepository.getTokenBySessionId(sessionId)
                 .map(Mono::just)
-                .orElseGet(() ->
-                        Mono.error(new MissingSession())
-                );
+                .orElse(Mono.error(new MissingSession()));
     }
 
     public List<Session> getNonActiveSessions() {

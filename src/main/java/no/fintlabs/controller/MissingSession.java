@@ -1,5 +1,3 @@
 package no.fintlabs.controller;
 
-public class MissingSession extends RuntimeException {
-
-}
+public class MissingSession extends SecurityException {}
