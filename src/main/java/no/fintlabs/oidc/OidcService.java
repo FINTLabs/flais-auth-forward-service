@@ -21,6 +21,7 @@ import reactor.util.retry.Retry;
 
 import javax.annotation.PostConstruct;
 import java.net.URI;
+import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -116,6 +117,19 @@ public class OidcService {
                     return Mono.error(new TokenRefreshError());
                 });
 
+    }
+
+    public Mono<Void> revokeToken(Token token) {
+        return webClient.post()
+                .uri(getWellKnownConfiguration().getRevocationEndpoint())
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .body(BodyInserters.fromFormData(OidcRequestFactory.createRevokeTokenRequestBody(
+                        applicationConfiguration.getClientId(),
+                        applicationConfiguration.getClientSecret(),
+                        token.getRefreshToken()
+                )))
+                .retrieve()
+                .bodyToMono(Void.class);
     }
 
     public boolean tokenIsValid(Token token) {

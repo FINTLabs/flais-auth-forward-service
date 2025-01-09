@@ -55,6 +55,16 @@ public class OidcRequestFactory {
         return bodyMap;
     }
 
+    public static MultiValueMap<String, String> createRevokeTokenRequestBody(String clientId, String clientSecret, String refreshToken) {
+        final MultiValueMap<String, String> bodyMap = new LinkedMultiValueMap<>();
+
+        bodyMap.add("client_id", clientId);
+        bodyMap.add("client_secret", clientSecret);
+        bodyMap.add("token", refreshToken);
+
+        return bodyMap;
+    }
+
     public URI createAuthorizationUri(String authorizationEndpoint, HttpHeaders headers, Session session) {
         return UriComponentsBuilder.fromUriString(authorizationEndpoint)
                 .queryParam("response_type", "code")
@@ -62,8 +72,8 @@ public class OidcRequestFactory {
                 .queryParam("state", session.getSessionId())
                 .queryParam("nonce", RandomStringUtils.randomAlphanumeric(32))
                 .queryParam("prompt", "login")
-                //.queryParam("code_challenge", PkceUtil.generateCodeChallange(PkceUtil.generateCodeVerifier()))
-                //        .queryParam("code_challenge_method", "S256")
+//                .queryParam("code_challenge", PkceUtil.generateCodeChallange(PkceUtil.generateCodeVerifier()))
+//                        .queryParam("code_challenge_method", "S256")
                 .queryParam("client_id", applicationConfiguration.getClientId())
                 .queryParam("scope", String.join("+", applicationConfiguration.getScopes()))
                 .build()

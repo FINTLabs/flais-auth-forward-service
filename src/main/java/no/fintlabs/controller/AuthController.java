@@ -119,20 +119,29 @@ public class AuthController {
 
         log.debug("Calling {}", request.getPath());
 
-        cookieValue.ifPresent(s -> {
-            try {
-                sessionService.clearSessionByCookieValue(s);
-            } catch (Exception e) {
-                log.debug("Error clearing session: {}", e.getMessage());
-            }
-            response.addCookie(cookieService.createRemoveAuthenticationCookie());
-            response.addCookie(cookieService.createLogoutCookie(s));
+        return Mono.justOrEmpty(cookieValue)
+                .flatMap(cookie ->
+                        cookieService.getSessionId(cookie)
+                                .flatMap(sessionService::getSession)
+                                .flatMap(session -> {
+                                    // Clear the session and set cookies
+                                    sessionService.clearSessionBySessionId(session.getSessionId());
+                                    response.addCookie(cookieService.createRemoveAuthenticationCookie());
+                                    response.addCookie(cookieService.createLogoutCookie(cookie));
 
-        });
-        response.setStatusCode(HttpStatus.FOUND);
-        response.getHeaders().setLocation(oidcService.getRedirectAfterLogoutUri());
-
-        return response.setComplete();
+                                    // Revoke the token, but continue regardless of errors
+                                    return oidcService.revokeToken(session.getToken())
+                                            .onErrorResume(e -> {
+                                                log.error("Error revoking token: {}", e.getMessage());
+                                                return Mono.empty();
+                                            });
+                                })
+                )
+                .then(Mono.defer(() -> {
+                    response.setStatusCode(HttpStatus.FOUND);
+                    response.getHeaders().setLocation(oidcService.getRedirectAfterLogoutUri());
+                    return response.setComplete();
+                }));
     }
 
     @GetMapping("sessions/me")
