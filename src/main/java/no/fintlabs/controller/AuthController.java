@@ -63,7 +63,7 @@ public class AuthController {
                     return response.setComplete();
                 })
                 .onErrorResume(e -> {
-                    if (e instanceof SecurityException || e instanceof UnableToVerifyTokenSignature) {
+                    if (e instanceof SecurityException) {
                         try {
                             cookieValue.ifPresent(sessionService::clearSessionByCookieValue);
                         } catch (Exception ignored) {}
