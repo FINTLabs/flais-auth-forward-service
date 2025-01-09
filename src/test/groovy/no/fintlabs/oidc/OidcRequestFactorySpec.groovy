@@ -16,23 +16,35 @@ class OidcRequestFactorySpec extends Specification {
         oidcRequestFactory = new OidcRequestFactory(configuration)
     }
 
-    def "Fetch token  request body should have 5 elements and grant_type should be authorization_code"() {
+    def "Fetch token  request body should have 6 elements and grant_type should be authorization_code"() {
         when:
         def body = OidcRequestFactory
-                .createTokenRequestBody("clientId", "clientSecret", "code", "callbackUri")
+                .createTokenRequestBody("clientId", "clientSecret", "code", "callbackUri", "codeVerifier")
 
         then:
-        body.size() == 5
+        body.size() == 6
         body.get("grant_type").get(0) == "authorization_code"
     }
 
     def "Authorization URI should have response_type to be code"() {
         when:
-        def uri = oidcRequestFactory.createAuthorizationUri("http://localhost", new HttpHeaders(), new Session.SessionBuilder().build())
+        def uri = oidcRequestFactory.createAuthorizationUri("http://localhost", new HttpHeaders(), "state", "codeVerifier")
         def uriComponents = UriComponentsBuilder.fromUri(uri).build()
         then:
-        uriComponents.getQueryParams().size() == 7
+        uriComponents.getQueryParams().size() == 9
         uriComponents.getQueryParams().getFirst("response_type") == "code"
+    }
+
+    def "Authorization URI should have valid PKCE"() {
+        when:
+        def codeVerifier = "1234"
+        def uri = oidcRequestFactory.createAuthorizationUri("http://localhost", new HttpHeaders(), "state", codeVerifier)
+        def uriComponents = UriComponentsBuilder.fromUri(uri).build()
+        def codeChallenge = PkceUtil.generateCodeChallenge(codeVerifier)
+        then:
+        assert uriComponents.getQueryParams().size() == 9
+        assert uriComponents.getQueryParams().getFirst("code_challenge_method") == PkceUtil.codeChallengeMethod
+        assert uriComponents.getQueryParams().getFirst("code_challenge") == codeChallenge
     }
 
     def "If enforce https is enabled port should be null"() {
@@ -54,8 +66,4 @@ class OidcRequestFactorySpec extends Specification {
         protocol == "https"
 
     }
-
-
-
-
 }

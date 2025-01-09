@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.ApplicationConfiguration;
 import no.fintlabs.controller.TokenRefreshError;
 import no.fintlabs.session.Session;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,6 @@ import reactor.util.retry.Retry;
 
 import javax.annotation.PostConstruct;
 import java.net.URI;
-import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -45,6 +45,8 @@ public class OidcService {
 
     private final OidcRequestFactory oidcRequestFactory;
 
+    private final CodeVerifierCache codeVerifierCache;
+
     @Getter
     @Setter
     private Jwk jwk;
@@ -52,10 +54,11 @@ public class OidcService {
     public static final Integer RETRY_ATTEMPTS = 3;
     public static final Duration DELAY = Duration.ofSeconds((long) Math.pow(1L, 5L));
 
-    public OidcService(ApplicationConfiguration applicationConfiguration, WebClient webClient, OidcRequestFactory oidcRequestFactory) {
+    public OidcService(ApplicationConfiguration applicationConfiguration, WebClient webClient, OidcRequestFactory oidcRequestFactory, CodeVerifierCache codeVerifierCache) {
         this.applicationConfiguration = applicationConfiguration;
         this.webClient = webClient;
         this.oidcRequestFactory = oidcRequestFactory;
+        this.codeVerifierCache = codeVerifierCache;
     }
 
     @PostConstruct
@@ -66,6 +69,12 @@ public class OidcService {
 
     public Mono<Token> fetchToken(Map<String, String> params, HttpHeaders headers) {
         log.debug("Fetching token from {}", getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api");
+
+        var codeVerifier = codeVerifierCache.getCodeVerifier(params.get("state"));
+        if (codeVerifier == null) {
+            return Mono.error(new InvalidState());
+        }
+
         return webClient.post()
                 .uri(getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -76,7 +85,8 @@ public class OidcService {
                                                 applicationConfiguration.getClientId(),
                                                 applicationConfiguration.getClientSecret(),
                                                 params.get("code"),
-                                                oidcRequestFactory.createCallbackUri(headers)
+                                                oidcRequestFactory.createCallbackUri(headers),
+                                                codeVerifier
                                         ))
                 )
                 .retrieve()
@@ -177,10 +187,14 @@ public class OidcService {
         log.debug(jwk.toString());
     }
 
-    public URI getAuthorizationUri(HttpHeaders headers, Session session) {
+    public URI getAuthorizationUri(HttpHeaders headers) {
+        var codeVerifier = PkceUtil.generateCodeVerifier();
+        var state = RandomStringUtils.randomAlphanumeric(32);
+        log.debug("Generating authorization URI");
 
+        codeVerifierCache.storeCodeVerifier(state, codeVerifier);
         return oidcRequestFactory
-                .createAuthorizationUri(wellKnownConfiguration.getAuthorizationEndpoint(), headers, session);
+                .createAuthorizationUri(wellKnownConfiguration.getAuthorizationEndpoint(), headers, state, codeVerifier);
 
     }
 

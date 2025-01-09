@@ -15,7 +15,6 @@ import org.jetbrains.annotations.NotNull
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
-import org.springframework.mock.http.server.reactive.MockServerHttpResponse
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.util.UriComponentsBuilder
 import spock.lang.Specification
@@ -29,6 +28,7 @@ class OidcServiceSpec extends Specification {
     CookieService cookieService
     OidcRequestFactory oidcRequestFactory
     SessionService sessionService
+    CodeVerifierCache codeVerifierCache
 
     void setup() {
         mockWebServer = new MockWebServer()
@@ -39,8 +39,9 @@ class OidcServiceSpec extends Specification {
         sessionRepository = new InMemorySessionRepository(configuration)
         cookieService = new CookieService(configuration)
         oidcRequestFactory = new OidcRequestFactory(configuration)
-        sessionService = new SessionService(configuration, sessionRepository)
-        oidcService = new OidcService(configuration, WebClient.create(), oidcRequestFactory)
+        sessionService = new SessionService(sessionRepository)
+        codeVerifierCache = new CodeVerifierCache()
+        oidcService = new OidcService(configuration, WebClient.create(), oidcRequestFactory, codeVerifierCache)
 
         def dispatcher = new Dispatcher() {
             @Override
@@ -96,7 +97,7 @@ class OidcServiceSpec extends Specification {
     }
 
 
-    def "Successfully fetching token should set the token in the session repository"() {
+    def "Should successfully fetch token"() {
         given:
         def headers = new HttpHeaders()
         headers.set(Headers.X_FORWARDED_HOST, "localhost")
@@ -104,15 +105,40 @@ class OidcServiceSpec extends Specification {
         headers.set(Headers.X_FORWARDED_PROTO, "http")
 
         oidcService.fetchWellKnowConfiguration()
-        def session = sessionService.initializeSession()
-        def queryParameters = UriComponentsBuilder.fromHttpUrl(oidcService.getAuthorizationUri(headers, session).toString()).build().getQueryParams()
-
+        def authUrl = oidcService.getAuthorizationUri(headers).toString()
+        def queryParameters = UriComponentsBuilder.fromUriString(authUrl.toString())
+                .build()
+                .getQueryParams()
+        def state = queryParameters.getFirst("state")
+        codeVerifierCache.storeCodeVerifier(state, "")
 
         when:
-        oidcService.fetchToken(Maps.of("state", queryParameters.getFirst("state"), "code", "code"), headers).block()
+        def token = oidcService.fetchToken(Maps.of("state", state, "code", "code"), headers).block()
 
         then:
-        sessionRepository.getSessions().size() == 1
-        sessionRepository.getTokenBySessionId(queryParameters.getFirst("state")).isPresent()
+        assert token != null
+    }
+
+    def "Should fail due to wrong state being sent"() {
+        given:
+        def headers = new HttpHeaders()
+        headers.set(Headers.X_FORWARDED_HOST, "localhost")
+        headers.set(Headers.X_FORWARDED_PORT, "80")
+        headers.set(Headers.X_FORWARDED_PROTO, "http")
+
+        oidcService.fetchWellKnowConfiguration()
+        def authUrl = oidcService.getAuthorizationUri(headers).toString()
+        def queryParameters = UriComponentsBuilder.fromUriString(authUrl.toString())
+                .build()
+                .getQueryParams()
+        def state = queryParameters.getFirst("state")
+        codeVerifierCache.storeCodeVerifier(state, "")
+
+        when:
+        def result = oidcService.fetchToken(Maps.of("state", "wrongState", "code", "code"), headers).block()
+
+        then:
+        def exception = thrown(InvalidState)
+        exception.message == "Invalid state"
     }
 }

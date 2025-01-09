@@ -14,6 +14,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -67,9 +68,7 @@ public class AuthController {
                         try {
                             cookieValue.ifPresent(sessionService::clearSessionByCookieValue);
                         } catch (Exception ignored) {}
-
-                        var session = sessionService.initializeSession();
-                        var redirectUri = oidcService.getAuthorizationUri(headers, session);
+                        var redirectUri = oidcService.getAuthorizationUri(headers);
 
                         log.debug("Missing authentication!");
                         log.debug("Redirecting to {}", redirectUri);
@@ -103,10 +102,10 @@ public class AuthController {
 
         return oidcService.fetchToken(queryParameters, headers)
                 .flatMap(token -> {
-                    sessionService.updateSession(queryParameters.get("state"), token);
+                    var session = sessionService.initializeSession(token);
                     response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
                     response.getHeaders().setLocation(oidcService.getRedirectAfterLoginUri(headers));
-                    response.addCookie(cookieService.createAuthenticationCookie(queryParameters.get("state"), token.getExpiresIn()));
+                    response.addCookie(cookieService.createAuthenticationCookie(session.getSessionId(), token.getExpiresIn()));
 
                     return response.setComplete();
                 });

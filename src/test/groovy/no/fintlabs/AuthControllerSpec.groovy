@@ -16,6 +16,7 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.util.UriComponentsBuilder
 import reactor.core.publisher.Mono
 import spock.lang.Specification
 
@@ -37,14 +38,17 @@ class AuthControllerSpec extends Specification {
     SessionRepository sessionRepository =  new InMemorySessionRepository(configuration)
 
     @SpringBean
-    SessionService sessionService = new SessionService(configuration, sessionRepository)
+    SessionService sessionService = new SessionService(sessionRepository)
+
+
+    CodeVerifierCache codeVerifierCache = new CodeVerifierCache();
 
     @SpringBean
     OidcService oidcService = new OidcService(
             configuration,
-            oidcWebClient
-            ,
-            new OidcRequestFactory(configuration)
+            oidcWebClient,
+            new OidcRequestFactory(configuration),
+            codeVerifierCache
     )
 
     void setup() {
@@ -58,9 +62,7 @@ class AuthControllerSpec extends Specification {
         oidcService.setJwk(new ObjectMapper().readValue(new ClassPathResource('jwk.json').getFile(), Jwk.class))
     }
 
-    def "If no valid authentication is present we should return 307 and a new session should be initialized"() {
-        given:
-        def sessionCount = sessionService.sessionCount()
+    def "If no valid authentication is present we should return 307 and state and code verifier should be generated"() {
         when:
         def response = webTestClient
                 .get()
@@ -70,18 +72,23 @@ class AuthControllerSpec extends Specification {
         then:
         response.expectStatus()
                 .isTemporaryRedirect()
-        sessionCount + 1 == sessionService.sessionCount()
+        def locationHeader = response.returnResult(Void.class).responseHeaders.getFirst(HttpHeaders.LOCATION)
+        assert locationHeader != null
 
+        def uriComponents = UriComponentsBuilder.fromUriString(locationHeader).build()
+        def queryParams = uriComponents.getQueryParams()
+        def state = queryParams.getFirst("state")
+
+        assert state != null
+        def codeVerifier = codeVerifierCache.getCodeVerifier(state)
+        assert codeVerifier != null
     }
 
     def "If cookie, session and token is verified everything should be ok"() {
 
         given:
-        def session = sessionService.initializeSession()
+        def session = sessionService.initializeSession(TokenFactory.createTokenWithoutSignature())
         def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), 3600)
-        sessionService.updateSession(session.getSessionId(),
-                TokenFactory.createTokenWithoutSignature()
-        )
 
         when:
         def response = webTestClient
@@ -98,12 +105,9 @@ class AuthControllerSpec extends Specification {
     def "If cookie is not valid we should be redirected for authentication"() {
 
         given:
-        def session = sessionService.initializeSession()
+        def session = sessionService.initializeSession(
+                TokenFactory.createTokenWithoutSignature())
         def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), 3600)
-        sessionService.updateSession(
-                session.getSessionId(),
-                TokenFactory.createTokenWithoutSignature()
-        )
 
         when:
         def response = webTestClient
@@ -119,12 +123,8 @@ class AuthControllerSpec extends Specification {
     def "If cookie is valid but session is not valid we should be redirected for authentication"() {
 
         given:
-        def session = sessionService.initializeSession()
+        def session = sessionService.initializeSession(TokenFactory.createTokenWithoutSignature())
         def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), 3600)
-        sessionService.updateSession(
-                session.getSessionId(),
-                TokenFactory.createTokenWithoutSignature()
-        )
 
         when:
         def response = webTestClient
@@ -139,10 +139,9 @@ class AuthControllerSpec extends Specification {
 
     def "Should refetch token when session is about to expire"() {
         given:
-        def session = sessionService.initializeSession()
-        def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), 3600)
         def origToken = TokenFactory.createTokenWithoutSignature(Instant.now().plusSeconds(10))
-        sessionService.updateSession(session.getSessionId(), origToken)
+        def session = sessionService.initializeSession(origToken)
+        def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), 3600)
 
         def requestBodyUriSpec = Mock(WebClient.RequestBodyUriSpec)
         def requestBodySpec = Mock(WebClient.RequestBodySpec)
@@ -184,12 +183,9 @@ class AuthControllerSpec extends Specification {
     def "If token is not verified we should get 403"() {
 
         given:
-        def session = sessionService.initializeSession()
+        def session = sessionService.initializeSession(TokenFactory.createTokenWithSignature())
         def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), 3600)
-        sessionService.updateSession(
-                session.getSessionId(),
-                TokenFactory.createTokenWithSignature()
-        )
+
 
         when:
         def response = webTestClient
@@ -204,12 +200,8 @@ class AuthControllerSpec extends Specification {
 
     def "When logging out the session should be removed"() {
         given:
-        def session = sessionService.initializeSession()
+        def session = sessionService.initializeSession(TokenFactory.createTokenWithoutSignature())
         def cookie = cookieService.createAuthenticationCookie(session.getSessionId(), configuration.getSessionMaxAgeInMinutes())
-        sessionService.updateSession(
-                session.getSessionId(),
-                TokenFactory.createTokenWithoutSignature()
-        )
 
         def sessionCountBeforeLogout = sessionService.sessionCount()
 

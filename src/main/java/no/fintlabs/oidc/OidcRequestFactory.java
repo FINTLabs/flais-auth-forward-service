@@ -11,7 +11,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.swing.text.html.Option;
 import java.net.URI;
 import java.util.Optional;
 
@@ -30,7 +29,7 @@ public class OidcRequestFactory {
         this.applicationConfiguration = applicationConfiguration;
     }
 
-    public static MultiValueMap<String, String> createTokenRequestBody(String clientId, String clientSecret, String code, String callbackUri) {
+    public static MultiValueMap<String, String> createTokenRequestBody(String clientId, String clientSecret, String code, String callbackUri, String codeVerifier) {
 
         final MultiValueMap<String, String> bodyMap = new LinkedMultiValueMap<>();
 
@@ -39,6 +38,7 @@ public class OidcRequestFactory {
         bodyMap.add("client_secret", clientSecret);
         bodyMap.add("code", code);
         bodyMap.add("redirect_uri", callbackUri);
+        bodyMap.add("code_verifier", codeVerifier);
 
         return bodyMap;
     }
@@ -65,15 +65,15 @@ public class OidcRequestFactory {
         return bodyMap;
     }
 
-    public URI createAuthorizationUri(String authorizationEndpoint, HttpHeaders headers, Session session) {
+    public URI createAuthorizationUri(String authorizationEndpoint, HttpHeaders headers, String state, String codeVerifier) {
         return UriComponentsBuilder.fromUriString(authorizationEndpoint)
                 .queryParam("response_type", "code")
                 .queryParam("redirect_uri", createCallbackUri(headers))
-                .queryParam("state", session.getSessionId())
+                .queryParam("state", state)
                 .queryParam("nonce", RandomStringUtils.randomAlphanumeric(32))
                 .queryParam("prompt", "login")
-//                .queryParam("code_challenge", PkceUtil.generateCodeChallange(PkceUtil.generateCodeVerifier()))
-//                        .queryParam("code_challenge_method", "S256")
+                .queryParam("code_challenge", PkceUtil.generateCodeChallenge(codeVerifier))
+                .queryParam("code_challenge_method", PkceUtil.codeChallengeMethod)
                 .queryParam("client_id", applicationConfiguration.getClientId())
                 .queryParam("scope", String.join("+", applicationConfiguration.getScopes()))
                 .build()

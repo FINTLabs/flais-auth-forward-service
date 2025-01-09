@@ -4,7 +4,9 @@ import no.fintlabs.ApplicationConfiguration
 import no.fintlabs.TokenFactory
 import spock.lang.Specification
 
-import java.time.LocalDateTime
+import java.time.Instant
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 class SessionServiceSpec extends Specification {
 
@@ -15,57 +17,30 @@ class SessionServiceSpec extends Specification {
     void setup() {
         configuration = new ApplicationConfiguration()
         repository = new InMemorySessionRepository(configuration)
-        sessionService = new SessionService(configuration, repository)
+        sessionService = new SessionService(repository)
     }
 
-    def "If session was initialized more than max session age in minutes ago it should be considered not active"() {
+    def "Should create new session"() {
         given:
-        def session = sessionService.initializeSession(LocalDateTime.now().minusMinutes(configuration.getSessionMaxAgeInMinutes() + 1))
-        sessionService.updateSession(session.getSessionId(), TokenFactory.createTokenWithSignature())
+        def expectedSession = sessionService.initializeSession(TokenFactory.createTokenWithSignature())
 
         when:
-        def active = sessionService.isSessionActive(session)
+        def session = sessionService.getSession(expectedSession.getSessionId()).block()
 
         then:
-        !active
+        assert session != null
+        assert expectedSession.sessionId == session.sessionId
     }
 
-    def "If session was initialized less than max session age in minutes ago it should be considered active"() {
+    def "Should extract correct token values"() {
         given:
-        def session = sessionService.initializeSession(LocalDateTime.now().minusMinutes(configuration.getSessionMaxAgeInMinutes() - 10))
-        sessionService.updateSession(session.getSessionId(), TokenFactory.createTokenWithSignature())
+        def expire = Instant.now()
 
         when:
-        def active = sessionService.isSessionActive(session)
+        def session = sessionService.initializeSession(TokenFactory.createTokenWithoutSignature(expire))
 
         then:
-        active
-    }
-
-//    def "If session don't contain a token is should be considered not active"() {
-//        given:
-//        def session = sessionService.initializeSession()
-//
-//        when:
-//        def active = sessionService.isSessionActive(session)
-//
-//        then:
-//        !active
-//    }
-
-    def "Get active session should only return active sessions"() {
-        given:
-        sessionService.initializeSession()
-        sessionService.initializeSession()
-        def activeSession = sessionService.initializeSession()
-        sessionService.updateSession(activeSession.getSessionId(), TokenFactory.createTokenWithSignature())
-
-        when:
-        def sessionCount = sessionService.sessionCount()
-        def activeSessionCount = sessionService.getActiveSessions().size()
-
-        then:
-        sessionCount == 3
-        activeSessionCount == 1
+        assert session != null
+        assert session.tokenExpiresAt == expire.atZone(ZoneId.systemDefault()).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS)
     }
 }
