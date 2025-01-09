@@ -2,7 +2,7 @@ package no.fintlabs.oidc
 
 import no.fintlabs.ApplicationConfiguration
 import no.fintlabs.controller.Headers
-import no.fintlabs.session.ConcurrentHashMapSessionRepository
+import no.fintlabs.session.InMemorySessionRepository
 import no.fintlabs.session.CookieService
 import no.fintlabs.session.SessionRepository
 import no.fintlabs.session.SessionService
@@ -36,11 +36,11 @@ class OidcServiceSpec extends Specification {
 
         configuration = new ApplicationConfiguration()
         configuration.setIssuerUri(mockWebServer.url("/").toString())
-        sessionRepository = new ConcurrentHashMapSessionRepository(configuration)
+        sessionRepository = new InMemorySessionRepository(configuration)
         cookieService = new CookieService(configuration)
         oidcRequestFactory = new OidcRequestFactory(configuration)
         sessionService = new SessionService(configuration, sessionRepository)
-        oidcService = new OidcService(configuration, WebClient.create(), sessionService, cookieService, oidcRequestFactory)
+        oidcService = new OidcService(configuration, WebClient.create(), oidcRequestFactory)
 
         def dispatcher = new Dispatcher() {
             @Override
@@ -114,18 +114,5 @@ class OidcServiceSpec extends Specification {
         then:
         sessionRepository.getSessions().size() == 1
         sessionRepository.getTokenBySessionId(queryParameters.getFirst("state")).isPresent()
-    }
-
-    def "Logout should remove session"() {
-
-        given:
-        def session = sessionService.initializeSession()
-        def sessionCount = sessionService.sessionCount()
-
-        when:
-        oidcService.logout(new MockServerHttpResponse(), Optional.of("signature." + session.getSessionId()))
-
-        then:
-        (sessionCount - 1) == sessionService.sessionCount()
     }
 }

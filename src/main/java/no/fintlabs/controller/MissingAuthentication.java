@@ -1,5 +1,5 @@
 package no.fintlabs.controller;
 
-public class MissingAuthentication extends Exception {
+public class MissingAuthentication extends SecurityException {
 
 }

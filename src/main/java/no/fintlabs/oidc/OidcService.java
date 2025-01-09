@@ -9,31 +9,23 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.ApplicationConfiguration;
-import no.fintlabs.controller.MissingAuthentication;
-import no.fintlabs.session.CookieService;
+import no.fintlabs.controller.TokenRefreshError;
 import no.fintlabs.session.Session;
-import no.fintlabs.session.SessionService;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
 import javax.annotation.PostConstruct;
 import java.net.URI;
+import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
-import java.sql.Time;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static com.auth0.jwt.algorithms.Algorithm.RSA256;
 import static com.auth0.jwt.algorithms.Algorithm.none;
@@ -47,12 +39,9 @@ public class OidcService {
     private final ApplicationConfiguration applicationConfiguration;
     private final WebClient webClient;
 
-    private final SessionService sessionService;
     @Getter
     @Setter
     private WellKnownConfiguration wellKnownConfiguration;
-
-    private final CookieService cookieService;
 
     private final OidcRequestFactory oidcRequestFactory;
 
@@ -60,14 +49,12 @@ public class OidcService {
     @Setter
     private Jwk jwk;
 
-    public static final Long RETRY_ATTEMPTS = 5L;
+    public static final Integer RETRY_ATTEMPTS = 3;
     public static final Duration DELAY = Duration.ofSeconds((long) Math.pow(1L, 5L));
 
-    public OidcService(ApplicationConfiguration applicationConfiguration, WebClient webClient, SessionService sessionService, CookieService cookieService, OidcRequestFactory oidcRequestFactory) {
+    public OidcService(ApplicationConfiguration applicationConfiguration, WebClient webClient, OidcRequestFactory oidcRequestFactory) {
         this.applicationConfiguration = applicationConfiguration;
         this.webClient = webClient;
-        this.sessionService = sessionService;
-        this.cookieService = cookieService;
         this.oidcRequestFactory = oidcRequestFactory;
     }
 
@@ -93,12 +80,7 @@ public class OidcService {
                                         ))
                 )
                 .retrieve()
-                .bodyToMono(Token.class)
-                .map(token -> {
-                    logToken(token);
-                    sessionService.updateSession(params.get("state"), token);
-                    return token;
-                });
+                .bodyToMono(Token.class);
     }
 
     private void logToken(Token token) {
@@ -106,15 +88,10 @@ public class OidcService {
                 .substring(token.getAccessToken().length() - 15));
     }
 
-    public void refreshToken(String state, Token token) {
+    public Mono<Token> refreshToken(String state, Token token) {
+        log.debug("Refreshing token from {}", getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api");
 
-        log.debug("Refreshing token...");
-
-        // TODO: 12/10/2023 remove logging of sensitive credentials
-        log.debug("clientId: {}", applicationConfiguration.getClientId());
-        log.debug("clientSecret: {}", applicationConfiguration.getClientSecret());
-
-        webClient.post()
+        return webClient.post()
                 .uri(getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .body(
@@ -133,24 +110,29 @@ public class OidcService {
                         .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) -> retrySignal.failure()))
                 )
                 .doOnSuccess(tokenResponse -> log.debug("Successfully refreshed token for: {}", tokenResponse.getAccessToken()))
-                .doOnError(WebClientResponseException.class, ex -> {
+                .onErrorResume(ex -> {
                     log.error("Error occured for clientId: {}", applicationConfiguration.getClientId());
                     log.error("WebClientResponseException occurred: {}", ex.getMessage());
 
-                    // TODO remove this when a proper solution has been found
-                    // https://fintlabs.atlassian.net/browse/FFS-495
-                    Runtime.getRuntime().halt(1);
-                })
-                .subscribe(tokenResponse -> {
-                    logToken(tokenResponse);
-                    tokenResponse.setRefreshToken(token.getRefreshToken());
-                    sessionService.updateSession(state, tokenResponse);
+                    return Mono.error(new TokenRefreshError());
                 });
 
     }
 
-    public void verifyToken(Token token) throws MissingAuthentication, UnableToVerifyTokenSignature {
+    public Mono<Void> revokeToken(Token token) {
+        return webClient.post()
+                .uri(getWellKnownConfiguration().getRevocationEndpoint())
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .body(BodyInserters.fromFormData(OidcRequestFactory.createRevokeTokenRequestBody(
+                        applicationConfiguration.getClientId(),
+                        applicationConfiguration.getClientSecret(),
+                        token.getRefreshToken()
+                )))
+                .retrieve()
+                .bodyToMono(Void.class);
+    }
 
+    public boolean tokenIsValid(Token token) {
         try {
             DecodedJWT jwt = JWT.decode(token.getAccessToken());
             Algorithm algorithm = none();
@@ -161,14 +143,12 @@ public class OidcService {
             }
             algorithm.verify(jwt);
             log.debug("Token is valid!");
-//            else {
-//                log.debug("TOKEN VERIFICATION IS DISABLED!!!!!");
-//            }
+            return true;
 
         } catch (SignatureVerificationException | InvalidPublicKeyException e) {
             log.debug("Token is not valid!");
             log.warn("{}", e.toString());
-            throw new UnableToVerifyTokenSignature();
+            return false;
         }
     }
 
@@ -197,22 +177,6 @@ public class OidcService {
         log.debug(jwk.toString());
     }
 
-    public Mono<Void> logout(ServerHttpResponse response, Optional<String> cookieValue) {
-
-        cookieValue.ifPresent(s -> {
-            log.debug("{} sessions in session repository before logout", sessionService.sessionCount());
-            sessionService.clearSessionByCookieValue(s);
-            log.debug("{} sessions in session repository after logout", sessionService.sessionCount());
-
-            response.addCookie(cookieService.createLogoutCookie(s));
-
-        });
-        response.setStatusCode(HttpStatus.FOUND);
-        response.getHeaders().setLocation(oidcRequestFactory.createRedirectAfterLogoutUri());
-
-        return response.setComplete();
-    }
-
     public URI getAuthorizationUri(HttpHeaders headers, Session session) {
 
         return oidcRequestFactory
@@ -224,27 +188,8 @@ public class OidcService {
         return oidcRequestFactory.createRedirectAfterLoginUri(headers);
     }
 
-    @Scheduled(cron = "${fint.sso.token-refresh-cron:0 */1 * * * *}")
-    public void refreshToken() {
-        List<Session> activeSessions = sessionService.getActiveSessions();
-        log.debug("Checking {} active session for expiring tokens", activeSessions.size());
-
-        // TODO: 12/10/2023 remove logging of sensitive credentials
-        log.debug("clientId: {}", applicationConfiguration.getClientId());
-        log.debug("clientSecret: {}", applicationConfiguration.getClientSecret());
-
-        activeSessions
-                .forEach(session -> {
-                    if (tokenNeedsRefresh(session)) {
-                        log.debug("Token has less than 60 seconds left. Refreshing token.");
-                        refreshToken(session.getSessionId(), session.getToken());
-                        log.debug("Refreshed token for UPN {}", session.getUpn());
-                    } else {
-                        log.debug("No need to refresh token!");
-                        log.debug("Session: " + session.getSessionId());
-                        log.debug("Token: " + session.getToken());
-                    }
-                });
+    public URI getRedirectAfterLogoutUri() {
+        return oidcRequestFactory.createRedirectAfterLogoutUri();
     }
 
     public boolean tokenNeedsRefresh(Session session) {

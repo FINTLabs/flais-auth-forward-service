@@ -9,6 +9,7 @@ spring:
       max-chunk-size: 8192
 logging:
   level:
-    no:
-      fintlabs: debug
+    root: error
+    no.fintlabs: info
+
 TZ: Europe/Oslo

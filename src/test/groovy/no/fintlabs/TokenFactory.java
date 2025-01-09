@@ -3,20 +3,27 @@ package no.fintlabs;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import no.fintlabs.oidc.Token;
+import org.assertj.core.internal.bytebuddy.utility.RandomString;
 
 import java.time.Instant;
+import java.util.Date;
+import java.util.random.RandomGenerator;
 
 public class TokenFactory {
 
     public static Token createTokenWithoutSignature() {
+        return createTokenWithoutSignature(Instant.now().plusSeconds(3600));
+    }
+
+    public static Token createTokenWithoutSignature(Instant expiresAt) {
         return Token.builder()
                 .accessToken(JWT
                         .create()
                         .withClaim("email", "ola@norman.no")
-                        .withExpiresAt(Instant.now())
+                        .withExpiresAt(expiresAt)
                         .sign(Algorithm.none()))
-                .refreshToken("refresh_token")
-                .tokenType("token_type")
+                .refreshToken(RandomString.make(16))
+                .tokenType("Bearer")
                 .expiresIn(3600)
                 .scope("scope")
                 .build();
@@ -28,10 +35,10 @@ public class TokenFactory {
                 .accessToken(JWT
                         .create()
                         .withClaim("email", "ola@norman.no")
-                        .withExpiresAt(Instant.now())
+                        .withExpiresAt(Instant.now().plusSeconds(3600))
                         .sign(Algorithm.HMAC256("secret")))
                 .refreshToken("refresh_token")
-                .tokenType("token_type")
+                .tokenType("Bearer")
                 .expiresIn(3600)
                 .scope("scope")
                 .build();
