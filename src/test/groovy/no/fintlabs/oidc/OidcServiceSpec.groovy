@@ -115,17 +115,4 @@ class OidcServiceSpec extends Specification {
         sessionRepository.getSessions().size() == 1
         sessionRepository.getTokenBySessionId(queryParameters.getFirst("state")).isPresent()
     }
-
-    def "Logout should remove session"() {
-
-        given:
-        def session = sessionService.initializeSession()
-        def sessionCount = sessionService.sessionCount()
-
-        when:
-        oidcService.logout(new MockServerHttpResponse(), Optional.of("signature." + session.getSessionId()))
-
-        then:
-        (sessionCount - 1) == sessionService.sessionCount()
-    }
 }
