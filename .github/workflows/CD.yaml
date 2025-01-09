@@ -1,6 +1,7 @@
 name: Create and publish a Docker image
 
 on:
+  workflow_dispatch:
   push:
     branches: ['main']
 
@@ -33,7 +34,8 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=sha,enable=true,priority=100,prefix=sha-,suffix=,format=short
-            type=raw,value=latest
+            type=raw
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -41,3 +43,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Print docker tag
+        run: echo 'Docker-tag is ${{ steps.meta.outputs.tags }} ' >> $GITHUB_STEP_SUMMARY
