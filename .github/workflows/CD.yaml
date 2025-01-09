@@ -34,7 +34,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=sha,enable=true,priority=100,prefix=sha-,suffix=,format=short
-            type=raw
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
