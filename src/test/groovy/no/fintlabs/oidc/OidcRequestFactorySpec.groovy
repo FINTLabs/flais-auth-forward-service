@@ -31,7 +31,7 @@ class OidcRequestFactorySpec extends Specification {
         def uri = oidcRequestFactory.createAuthorizationUri("http://localhost", new HttpHeaders(), new Session.SessionBuilder().build())
         def uriComponents = UriComponentsBuilder.fromUri(uri).build()
         then:
-        uriComponents.getQueryParams().size() == 6
+        uriComponents.getQueryParams().size() == 7
         uriComponents.getQueryParams().getFirst("response_type") == "code"
     }
 
