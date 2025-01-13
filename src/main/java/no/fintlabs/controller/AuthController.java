@@ -65,12 +65,13 @@ public class AuthController {
                 })
                 .onErrorResume(e -> {
                     if (e instanceof SecurityException) {
+                        log.debug("Missing authentication!");
                         try {
+                            log.debug("Removing authentication cookie");
                             cookieValue.ifPresent(sessionService::clearSessionByCookieValue);
                         } catch (Exception ignored) {}
                         var redirectUri = oidcService.getAuthorizationUri(headers);
 
-                        log.debug("Missing authentication!");
                         log.debug("Redirecting to {}", redirectUri);
 
                         response.setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
@@ -157,7 +158,6 @@ public class AuthController {
 
     private void logRequest(ServerHttpRequest request) {
         log.debug("Calling {}", request.getPath());
-
         log.debug("X-Forwarded headers:");
         request.getHeaders().forEach((s, s2) -> {
             if (s.toLowerCase().startsWith("x-forwarded")) {

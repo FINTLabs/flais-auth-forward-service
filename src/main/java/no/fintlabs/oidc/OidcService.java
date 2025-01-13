@@ -98,7 +98,7 @@ public class OidcService {
                 .substring(token.getAccessToken().length() - 15));
     }
 
-    public Mono<Token> refreshToken(String state, Token token) {
+    public Mono<Token> refreshToken(String sessionId, Token token) {
         log.debug("Refreshing token from {}", getWellKnownConfiguration().getTokenEndpoint() + "?resourceServer=fint-api");
 
         return webClient.post()
@@ -120,13 +120,10 @@ public class OidcService {
                         .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) -> retrySignal.failure()))
                 )
                 .doOnSuccess(tokenResponse -> log.debug("Successfully refreshed token for: {}", tokenResponse.getAccessToken()))
-                .onErrorResume(ex -> {
-                    log.error("Error occured for clientId: {}", applicationConfiguration.getClientId());
-                    log.error("WebClientResponseException occurred: {}", ex.getMessage());
-
-                    return Mono.error(new TokenRefreshError());
+                .onErrorMap(ex -> {
+                    log.debug("Error refreshing token for session: {} ", sessionId, ex);
+                    return new TokenRefreshError();
                 });
-
     }
 
     public Mono<Void> revokeToken(Token token) {
