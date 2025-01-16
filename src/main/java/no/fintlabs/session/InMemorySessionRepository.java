@@ -9,6 +9,7 @@ import no.fintlabs.ApplicationConfiguration;
 import no.fintlabs.oidc.Token;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Map;
@@ -33,12 +34,15 @@ public class InMemorySessionRepository implements SessionRepository {
                 .build();
     }
 
-    public Session addSession(String sessionId, String codeVerifier, LocalDateTime sessionStart) {
+    public Session addSession(String sessionId, Token token) {
+        DecodedJWT jwt = JWT.decode(token.getAccessToken());
 
         Session session = Session.builder()
-                .codeVerifier(codeVerifier)
                 .sessionId(sessionId)
-                .sessionStartAt(sessionStart)
+                .token(token)
+                .sessionStartAt(LocalDateTime.now())
+                .tokenExpiresAt(dateToLocalDateTime(jwt.getExpiresAt()))
+                .upn(getClaimFromtJwt(jwt, applicationConfiguration.getClaimForUpn()))
                 .build();
 
         sessions.put(sessionId, session);
