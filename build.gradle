@@ -56,3 +56,7 @@ tasks.named('test') {
 tasks.named('compileJava') {
 	inputs.files(tasks.named('processResources'))
 }
+
+tasks.wrapper {
+	gradleVersion = '8.12.1'
+}
