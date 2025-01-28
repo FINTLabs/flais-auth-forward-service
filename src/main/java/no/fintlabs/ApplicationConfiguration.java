@@ -21,7 +21,7 @@ public class ApplicationConfiguration {
     private boolean enforceHttps = true;
     private URI redirectAfterLogoutUri = URI.create("/_oauth/logged-out");
     private URI redirectAfterLoginUri = URI.create("/");
-    private String logoutMessage;
+    private String logoutMessage = "Du har blitt logget ut.";
     private boolean verifyTokenSignature = true;
     private long secondsBeforeTokenRefresh = 60;
     private String claimForUpn = "email";
