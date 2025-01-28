@@ -4,7 +4,6 @@ fint:
     idpHost: idp.felleskomponent.no
 spring:
   thymeleaf:
-    prefix: file:src/main/resources/templates/
     reactive:
       max-chunk-size: 8192
 logging:
