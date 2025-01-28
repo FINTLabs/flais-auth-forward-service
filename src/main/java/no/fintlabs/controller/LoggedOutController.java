@@ -19,7 +19,6 @@ public class LoggedOutController {
 
     @GetMapping(value = "_oauth/logged-out")
     public Mono<Rendering> loggedOut() {
-
-        return Mono.just(Rendering.view("index").modelAttribute("message", applicationConfiguration.getLogoutMessage()).build());
+        return Mono.just(Rendering.view("logged-out").modelAttribute("message", applicationConfiguration.getLogoutMessage()).build());
     }
 }
