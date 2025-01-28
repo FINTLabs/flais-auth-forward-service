@@ -1,16 +1,20 @@
 plugins {
-	id 'org.springframework.boot' version '2.7.4'
-	id 'io.spring.dependency-management' version '1.0.14.RELEASE'
+	id 'org.springframework.boot' version '3.4.2'
+	id 'io.spring.dependency-management' version '1.1.7'
 	id 'java'
 	id 'groovy'
 }
 
 group = 'no.fintlabs'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '17'
 
 jar {
 	enabled = false
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 configurations {
@@ -26,13 +30,13 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
-	implementation 'io.netty:netty-resolver-dns-native-macos:4.1.82.Final:osx-aarch_64'
-	implementation 'org.apache.commons:commons-lang3:3.12.0'
+	implementation 'io.netty:netty-all:4.1.117.Final'
+	implementation 'org.apache.commons:commons-lang3:3.17.0'
 	implementation "com.github.ben-manes.caffeine:caffeine:3.1.8"
 
-	implementation 'com.auth0:java-jwt:4.0.0'
-	implementation 'com.auth0:jwks-rsa:0.21.2'
-	implementation 'commons-codec:commons-codec:1.15'
+	implementation 'com.auth0:java-jwt:4.4.0'
+	implementation 'com.auth0:jwks-rsa:0.22.1'
+	implementation 'commons-codec:commons-codec:1.17.2'
 
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
@@ -45,8 +49,8 @@ dependencies {
 	testImplementation 'cglib:cglib-nodep:3.3.0'
 	testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
 	testImplementation 'org.spockframework:spock-spring:2.3-groovy-4.0'
-	testImplementation 'com.squareup.okhttp3:mockwebserver:4.10.0'
-	testImplementation 'com.squareup.okhttp3:okhttp:4.10.0'
+	testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+	testImplementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }
 
 tasks.named('test') {
@@ -55,4 +59,8 @@ tasks.named('test') {
 
 tasks.named('compileJava') {
 	inputs.files(tasks.named('processResources'))
+}
+
+tasks.wrapper {
+	gradleVersion = '8.12.1'
 }
