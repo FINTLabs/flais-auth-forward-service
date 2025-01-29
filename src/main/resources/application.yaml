@@ -6,6 +6,8 @@ spring:
   thymeleaf:
     reactive:
       max-chunk-size: 8192
+  webflux:
+    static-path-pattern: /_oauth/assets/**
 logging:
   level:
     root: error
