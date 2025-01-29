@@ -2,6 +2,10 @@ fint:
   sso:
     logout-message: Du er logget ut.
     idpHost: idp.felleskomponent.no
+server:
+  error:
+    whitelabel:
+      enabled: false
 spring:
   thymeleaf:
     reactive:
