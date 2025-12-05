@@ -1,6 +1,7 @@
 package no.fintlabs.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.oidc.InvalidState;
 import no.fintlabs.oidc.OidcService;
 import no.fintlabs.oidc.UnableToVerifyTokenSignature;
 import no.fintlabs.session.CookieService;
@@ -14,7 +15,6 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -167,17 +167,5 @@ public class AuthController {
 
         log.debug("Request parameters:");
         request.getQueryParams().forEach((s, s2) -> log.debug("\t{}: {}", s, s2));
-    }
-
-    @ExceptionHandler(SecurityException.class)
-    public ResponseEntity<Void> handleSecurityException(SecurityException e) {
-        log.debug(e.toString());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Void> handleException(Exception e) {
-        log.debug(e.toString());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 }

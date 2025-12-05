@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="nb" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: baseLayout(~{::title}, ~{::#content})}">
+<head>
+    <title>Error</title>
+</head>
+<body>
+<div id="content" class="text-center">
+    <p class="text-xl font-semibold text-gray-900 mb-4" th:text="${reason} ?: 'Noe gikk galt under innloggingen'">
+    </p>
+    <a href="./" class="text-blue-600 hover:text-blue-800 text-lg font-medium">
+        Trykk her for å prøve igjen
+    </a>
+</div>
+</body>
+</html>

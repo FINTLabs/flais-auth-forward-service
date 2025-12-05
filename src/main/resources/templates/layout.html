@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="nb" xmlns:th="http://www.thymeleaf.org"
+      th:fragment="baseLayout(title, content)">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <title th:replace="${title}">SSO</title>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<div class="bg-white shadow-md rounded-lg w-full max-w-xl p-8">
+
+    <div class="flex items-center mb-6">
+        <img th:src="@{/_oauth/assets/images/novari-logo.png}"
+             alt="Novari Logo"
+             class="w-32">
+    </div>
+
+    <main th:replace="${content}">
+        <p>Default content from layout</p>
+    </main>
+
+</div>
+</body>
+</html>
