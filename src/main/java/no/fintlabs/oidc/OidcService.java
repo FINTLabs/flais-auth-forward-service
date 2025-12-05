@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import no.fintlabs.ApplicationConfiguration;
+import no.fintlabs.controller.FetchTokenError;
 import no.fintlabs.controller.TokenRefreshError;
 import no.fintlabs.session.Session;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -72,6 +73,7 @@ public class OidcService {
 
         var codeVerifier = codeVerifierCache.getCodeVerifier(params.get("state"));
         if (codeVerifier == null) {
+            log.debug("No code verifier found for {}", params.get("state"));
             return Mono.error(new InvalidState());
         }
 
@@ -90,7 +92,19 @@ public class OidcService {
                                         ))
                 )
                 .retrieve()
-                .bodyToMono(Token.class);
+                .bodyToMono(Token.class)
+                .retryWhen(Retry.fixedDelay(RETRY_ATTEMPTS, DELAY)
+                        .doAfterRetry(retrySignal -> log.debug("Fetch token retried {} times.", retrySignal.totalRetries()))
+                        .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) -> retrySignal.failure()))
+                )
+                .doOnSuccess(token -> {
+                    codeVerifierCache.removeCodeVerifier(params.get("state"));
+                    log.debug("Successfully got token for: {}", token.getAccessToken());
+                })
+                .onErrorMap(ex -> {
+                    log.debug("Error fetching token", ex);
+                    return new FetchTokenError();
+                });
     }
 
     private void logToken(Token token) {
@@ -116,7 +130,7 @@ public class OidcService {
                 .retrieve()
                 .bodyToMono(Token.class)
                 .retryWhen(Retry.fixedDelay(RETRY_ATTEMPTS, DELAY)
-                        .doAfterRetry(retrySignal -> log.debug("Retried {} times.", retrySignal.totalRetries()))
+                        .doAfterRetry(retrySignal -> log.debug("Refresh token retried {} times.", retrySignal.totalRetries()))
                         .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) -> retrySignal.failure()))
                 )
                 .doOnSuccess(tokenResponse -> log.debug("Successfully refreshed token for: {}", tokenResponse.getAccessToken()))
@@ -186,7 +200,7 @@ public class OidcService {
 
     public URI getAuthorizationUri(HttpHeaders headers) {
         var codeVerifier = PkceUtil.generateCodeVerifier();
-        var state = RandomStringUtils.randomAlphanumeric(32);
+        var state = RandomStringUtils.secureStrong().nextAlphabetic(32);
         log.debug("Generating authorization URI");
 
         codeVerifierCache.storeCodeVerifier(state, codeVerifier);
