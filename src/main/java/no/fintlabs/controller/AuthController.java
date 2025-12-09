@@ -1,6 +1,7 @@
 package no.fintlabs.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import no.fintlabs.oidc.InvalidState;
 import no.fintlabs.oidc.OidcService;
 import no.fintlabs.oidc.UnableToVerifyTokenSignature;
 import no.fintlabs.session.CookieService;
