@@ -1,7 +1,6 @@
 package no.fintlabs.controller;
 
 import lombok.extern.slf4j.Slf4j;
-import no.fintlabs.oidc.InvalidState;
 import no.fintlabs.oidc.OidcService;
 import no.fintlabs.oidc.UnableToVerifyTokenSignature;
 import no.fintlabs.session.CookieService;
@@ -10,7 +9,6 @@ import no.fintlabs.session.SessionNotFoundException;
 import no.fintlabs.session.SessionService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.StringUtils;
