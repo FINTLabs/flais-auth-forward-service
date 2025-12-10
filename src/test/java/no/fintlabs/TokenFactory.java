@@ -4,7 +4,6 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import net.bytebuddy.utility.RandomString;
 import no.fintlabs.oidc.Token;
-import org.apache.commons.lang3.RandomStringUtils;
 
 import java.time.Instant;
 

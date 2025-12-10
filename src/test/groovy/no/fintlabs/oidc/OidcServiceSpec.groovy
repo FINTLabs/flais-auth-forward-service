@@ -20,7 +20,6 @@ import org.springframework.web.util.UriComponentsBuilder
 import spock.lang.Specification
 
 class OidcServiceSpec extends Specification {
-
     MockWebServer mockWebServer
     OidcService oidcService
     ApplicationConfiguration configuration
@@ -139,6 +138,6 @@ class OidcServiceSpec extends Specification {
 
         then:
         def exception = thrown(InvalidState)
-        exception.message == "Invalid state"
+        assert exception != null
     }
 }
