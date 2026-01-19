@@ -12,6 +12,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Objects;
 import java.util.Optional;
 
 import static no.fintlabs.controller.Headers.*;
@@ -125,10 +126,13 @@ public class OidcRequestFactory {
         }
 
         if (headers.containsKey(X_FORWARDED_PORT)) {
-            return headers.getFirst(X_FORWARDED_PORT).equals("80") ? null : headers.getFirst(X_FORWARDED_PORT);
+            return Objects.equals(headers.getFirst(X_FORWARDED_PORT), "80")
+                    ? null
+                    : headers.getFirst(X_FORWARDED_PORT);
         }
 
         return Optional.ofNullable(headers.getFirst(HttpHeaders.HOST))
+                .or(() -> Optional.ofNullable(headers.getFirst(X_FORWARDED_HOST)))
                 .map(host -> host.contains(":") ? host.split(":")[1] : null)
                 .orElse(null);
     }
@@ -142,8 +146,8 @@ public class OidcRequestFactory {
 
     public String getHost(HttpHeaders headers) {
         return Optional.ofNullable(headers.getFirst(X_FORWARDED_HOST))
-                .orElse(Optional.ofNullable(headers.getFirst(HttpHeaders.HOST))
-                        .map(host -> host.contains(":") ? host.split(":")[0] : host)
-                        .orElse(null));
+                .or(() -> Optional.ofNullable(headers.getFirst(HttpHeaders.HOST)))
+                .map(host -> host.contains(":") ? host.split(":")[0] : host)
+                .orElse(null);
     }
 }
